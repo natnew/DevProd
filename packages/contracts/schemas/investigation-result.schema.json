@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://devprod.local/schemas/investigation-result.schema.json",
+  "type": "object",
+  "required": [
+    "incident",
+    "evidence",
+    "changes",
+    "knowledge",
+    "hypotheses",
+    "remediation",
+    "postmortem",
+    "trace",
+    "evaluationScore"
+  ],
+  "properties": {
+    "incident": {
+      "$ref": "https://devprod.local/schemas/incident-summary.schema.json"
+    },
+    "evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "summary", "detail", "source"],
+        "properties": {
+          "id": { "type": "string" },
+          "kind": { "enum": ["log", "alert", "metric", "stack-trace"] },
+          "summary": { "type": "string" },
+          "detail": { "type": "string" },
+          "source": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "changes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "type", "service", "timestamp", "summary"],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "type": { "enum": ["deploy", "config", "dependency", "commit"] },
+          "service": { "type": "string" },
+          "timestamp": { "type": "string", "format": "date-time" },
+          "summary": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "knowledge": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "category", "excerpt", "path"],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "category": { "enum": ["runbook", "incident", "postmortem", "architecture"] },
+          "excerpt": { "type": "string" },
+          "path": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "hypotheses": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "statement", "confidence", "rationale", "supportingEvidenceIds"],
+        "properties": {
+          "id": { "type": "string" },
+          "statement": { "type": "string" },
+          "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+          "rationale": { "type": "string" },
+          "supportingEvidenceIds": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "remediation": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "action", "owner", "priority"],
+        "properties": {
+          "id": { "type": "string" },
+          "action": { "type": "string" },
+          "owner": { "type": "string" },
+          "priority": { "enum": ["immediate", "next", "follow-up"] }
+        },
+        "additionalProperties": false
+      }
+    },
+    "postmortem": {
+      "type": "object",
+      "required": ["title", "impact", "rootCause", "followUps"],
+      "properties": {
+        "title": { "type": "string" },
+        "impact": { "type": "string" },
+        "rootCause": { "type": "string" },
+        "followUps": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    },
+    "trace": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["agent", "status", "summary"],
+        "properties": {
+          "agent": { "type": "string" },
+          "status": { "enum": ["completed", "skipped"] },
+          "summary": { "type": "string" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "evaluationScore": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 100
+    }
+  },
+  "additionalProperties": false
+}

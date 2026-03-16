@@ -138,6 +138,8 @@ celerybeat.pid
 .env
 .envrc
 .venv
+.uv-cache/
+.uv-python/
 env/
 venv/
 ENV/
@@ -190,6 +192,12 @@ cython_debug/
 
 # Ruff stuff:
 .ruff_cache/
+node_modules/
+**/node_modules/
+.next/
+**/.next/
+*.tsbuildinfo
+apps/api/pytest-cache-files-*/
 
 # PyPI configuration file
 .pypirc

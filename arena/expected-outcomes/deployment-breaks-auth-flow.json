@@ -1,0 +1,6 @@
+{
+  "incidentId": "inc-auth-001",
+  "expectedRootCause": "Production AUTH_ISSUER points to the staging issuer after the latest deployment.",
+  "requiredKnowledgeIds": ["runbook-auth-issuer", "incident-auth-rollback"],
+  "acceptableRemediationKeywords": ["issuer", "rollback", "config", "validation"]
+}

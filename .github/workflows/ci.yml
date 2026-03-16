@@ -1,0 +1,51 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  web:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+      - name: Install dependencies
+        run: npm install
+      - name: Lint web
+        run: npm run lint
+      - name: Typecheck web
+        run: npm run typecheck
+      - name: Test web
+        run: npm run test
+      - name: Contract test web
+        run: npm run test:contracts
+
+  api:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+      - name: Install Python
+        run: uv python install 3.11
+      - name: Resolve Python path
+        run: |
+          $pythonPath = uv python find 3.11 --managed-python
+          "UV_PYTHON=$pythonPath" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+        shell: pwsh
+      - name: Sync API dependencies
+        run: uv sync --project apps/api --extra dev -p $env:UV_PYTHON
+        shell: pwsh
+      - name: Ruff
+        run: .\apps\api\.venv\Scripts\ruff.exe check apps/api evals
+      - name: Mypy
+        run: .\apps\api\.venv\Scripts\mypy.exe --config-file apps/api/pyproject.toml apps/api/devprod_api apps/api/tests evals/runners/score_scenarios.py
+      - name: Pytest
+        run: |
+          $env:PYTHONPATH = $PWD
+          .\apps\api\.venv\Scripts\python.exe -m pytest apps/api/tests
+        shell: pwsh

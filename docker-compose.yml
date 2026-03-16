@@ -1,0 +1,28 @@
+version: "3.9"
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      APP_BASE_URL: http://localhost:3000
+      API_BASE_URL: http://localhost:8000
+      DEMO_MODE: "true"
+      DEVPROD_ENABLE_AUTH: "false"
+      DEVPROD_RATE_LIMIT_PER_MINUTE: "60"
+      DEVPROD_ALLOWED_ORIGINS: http://localhost:3000
+    ports:
+      - "8000:8000"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+    environment:
+      API_BASE_URL: http://api:8000
+      NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+    depends_on:
+      - api
+    ports:
+      - "3000:3000"

@@ -1,0 +1,15 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://devprod.local/schemas/incident-list-response.schema.json",
+  "type": "object",
+  "required": ["incidents"],
+  "properties": {
+    "incidents": {
+      "type": "array",
+      "items": {
+        "$ref": "https://devprod.local/schemas/incident-summary.schema.json"
+      }
+    }
+  },
+  "additionalProperties": false
+}

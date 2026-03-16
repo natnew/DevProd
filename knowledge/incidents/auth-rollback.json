@@ -1,0 +1,6 @@
+{
+  "id": "incident-auth-rollback",
+  "title": "Rollback resolved issuer mismatch in checkout",
+  "summary": "A prior checkout deployment pointed to the wrong token issuer and caused 401 spikes until the config was rolled back.",
+  "service": "checkout-api"
+}

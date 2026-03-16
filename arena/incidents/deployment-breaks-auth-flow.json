@@ -1,0 +1,63 @@
+{
+  "id": "inc-auth-001",
+  "title": "Checkout authentication failures after deployment",
+  "service": "checkout-api",
+  "severity": "critical",
+  "status": "open",
+  "summary": "Users receive repeated 401 responses after the latest checkout deployment.",
+  "startedAt": "2026-03-16T08:10:00Z",
+  "timeline": [
+    "08:10 UTC alert opened for auth error rate spike",
+    "08:12 UTC support reports customer login failures",
+    "08:15 UTC deployment 2026.03.16-1 completed on checkout-api"
+  ],
+  "evidence": [
+    {
+      "id": "ev-1",
+      "kind": "alert",
+      "summary": "Authentication error rate above threshold",
+      "detail": "401 responses increased from 0.5% to 38% over 5 minutes.",
+      "source": "monitoring/auth-errors"
+    },
+    {
+      "id": "ev-2",
+      "kind": "log",
+      "summary": "JWT issuer mismatch",
+      "detail": "Token validation failed because configured issuer does not match expected production issuer.",
+      "source": "checkout-api/logs"
+    },
+    {
+      "id": "ev-3",
+      "kind": "metric",
+      "summary": "Deploy time correlation",
+      "detail": "Error increase begins within 2 minutes of deployment 2026.03.16-1.",
+      "source": "deployments/checkout-api"
+    }
+  ],
+  "changes": [
+    {
+      "id": "chg-1",
+      "title": "Deploy checkout-api 2026.03.16-1",
+      "type": "deploy",
+      "service": "checkout-api",
+      "timestamp": "2026-03-16T08:15:00Z",
+      "summary": "Rolled out auth configuration refactor for issuer selection."
+    },
+    {
+      "id": "chg-2",
+      "title": "Config change AUTH_ISSUER",
+      "type": "config",
+      "service": "checkout-api",
+      "timestamp": "2026-03-16T08:13:00Z",
+      "summary": "Updated issuer environment variable to staging value in production slot."
+    }
+  ],
+  "expectedOutcome": {
+    "rootCause": "Production AUTH_ISSUER points to the staging issuer after the latest deployment.",
+    "remediationIncludes": [
+      "Rollback or correct the AUTH_ISSUER configuration",
+      "Validate token issuer in production after config changes"
+    ],
+    "knowledgeIds": ["runbook-auth-issuer", "incident-auth-rollback"]
+  }
+}
