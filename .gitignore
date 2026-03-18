@@ -198,6 +198,10 @@ node_modules/
 **/.next/
 *.tsbuildinfo
 apps/api/pytest-cache-files-*/
+apps/api/*.sqlite3
+apps/api/test-history-*.sqlite3
+apps/api/eval-history.sqlite3
+arena/intake/
 
 # PyPI configuration file
 .pypirc

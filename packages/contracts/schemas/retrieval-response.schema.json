@@ -1,0 +1,77 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://devprod.local/schemas/retrieval-response.schema.json",
+  "type": "object",
+  "required": ["run", "retrieval"],
+  "properties": {
+    "run": {
+      "$ref": "#/$defs/run"
+    },
+    "retrieval": {
+      "type": "object",
+      "required": ["documents", "distractors", "coverageGaps"],
+      "properties": {
+        "documents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "title", "category", "excerpt", "path"],
+            "properties": {
+              "id": { "type": "string" },
+              "title": { "type": "string" },
+              "category": { "enum": ["runbook", "incident", "postmortem", "architecture"] },
+              "excerpt": { "type": "string" },
+              "path": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "distractors": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "title", "category", "excerpt", "path"],
+            "properties": {
+              "id": { "type": "string" },
+              "title": { "type": "string" },
+              "category": { "enum": ["runbook", "incident", "postmortem", "architecture"] },
+              "excerpt": { "type": "string" },
+              "path": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "coverageGaps": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "$defs": {
+    "run": {
+      "type": "object",
+      "required": [
+        "id",
+        "incidentId",
+        "incidentTitle",
+        "providerMode",
+        "evaluationScore",
+        "rootCause",
+        "createdAt"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "incidentId": { "type": "string" },
+        "incidentTitle": { "type": "string" },
+        "providerMode": { "enum": ["demo", "live"] },
+        "evaluationScore": { "type": "number", "minimum": 0, "maximum": 100 },
+        "rootCause": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

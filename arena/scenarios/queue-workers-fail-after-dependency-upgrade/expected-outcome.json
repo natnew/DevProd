@@ -1,0 +1,19 @@
+{
+  "scenario_id": "queue-workers-fail-after-dependency-upgrade",
+  "root_cause": "The billing-worker deployment upgraded the event envelope client to an incompatible version, causing job deserialization failures and queue backlog growth.",
+  "supporting_evidence": [
+    "Queue depth increases immediately after the billing-worker image rollout.",
+    "Logs show event deserialization failures with a changed envelope field.",
+    "Database contention is not present, making the lock-contention distractor unlikely."
+  ],
+  "acceptable_remediations": [
+    "Roll back the billing-worker image or dependency lockfile to the last known compatible event client version.",
+    "Pin the compatible event envelope dependency version and add contract validation in CI.",
+    "Reprocess failed jobs once workers are healthy again."
+  ],
+  "required_reasoning_steps": [
+    "Correlate queue backlog growth with the dependency-backed image rollout.",
+    "Use the deserialization error to distinguish dependency incompatibility from database issues.",
+    "Prefer rollback and compatibility checks over database tuning."
+  ]
+}

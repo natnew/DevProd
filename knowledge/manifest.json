@@ -1,0 +1,18 @@
+{
+  "root": "knowledge",
+  "documents": [
+    "architecture/checkout-auth.md",
+    "architecture/catalog-cache-flow.md",
+    "architecture/event-envelope-contract.md",
+    "incidents/incident-auth-rollback.md",
+    "incidents/cache-ttl-regression.md",
+    "incidents/dependency-upgrade-worker-failure.md",
+    "postmortems/checkout-auth-postmortem.md",
+    "runbooks/auth-issuer.md",
+    "runbooks/billing-worker-backlog.md",
+    "runbooks/catalog-cache-latency.md",
+    "runbooks/checkout-key-rotation.md",
+    "runbooks/database-lock-contention.md",
+    "runbooks/search-traffic-spike.md"
+  ]
+}

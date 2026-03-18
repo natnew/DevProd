@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://devprod.local/schemas/incident-detail.schema.json",
+  "type": "object",
+  "required": [
+    "id",
+    "title",
+    "service",
+    "severity",
+    "status",
+    "summary",
+    "startedAt",
+    "timeline"
+  ],
+  "properties": {
+    "id": { "type": "string" },
+    "title": { "type": "string" },
+    "service": { "type": "string" },
+    "severity": { "enum": ["critical", "high", "medium", "low"] },
+    "status": { "enum": ["open", "investigating", "resolved"] },
+    "summary": { "type": "string" },
+    "startedAt": { "type": "string", "format": "date-time" },
+    "timeline": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "environment": { "type": ["string", "null"] },
+    "customerImpact": { "type": ["string", "null"] }
+  },
+  "additionalProperties": false
+}

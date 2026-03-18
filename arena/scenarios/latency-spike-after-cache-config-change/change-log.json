@@ -1,0 +1,10 @@
+[
+  {
+    "id": "chg-1",
+    "type": "config",
+    "service": "catalog-api",
+    "timestamp": "2026-03-18T11:23:00Z",
+    "summary": "Disabled CATALOG_HOT_CACHE_ENABLED in production.",
+    "detail": "The flag change bypassed the in-memory hot cache path and shifted requests to Redis."
+  }
+]

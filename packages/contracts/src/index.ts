@@ -1,5 +1,6 @@
 export type Severity = "critical" | "high" | "medium" | "low";
 export type IncidentStatus = "open" | "investigating" | "resolved";
+export type TraceStatus = "completed" | "skipped";
 
 export interface IncidentSummary {
   id: string;
@@ -9,6 +10,29 @@ export interface IncidentSummary {
   status: IncidentStatus;
   summary: string;
   startedAt: string;
+}
+
+export interface IncidentDetail extends IncidentSummary {
+  timeline: string[];
+  environment?: string | null;
+  customerImpact?: string | null;
+}
+
+export interface IncidentIntakeRequest {
+  title: string;
+  service: string;
+  severity: Severity;
+  summary: string;
+  environment?: string;
+  customerImpact?: string | null;
+  initialSignals?: string[];
+  timeline?: string[];
+  suspectedComponents?: string[];
+}
+
+export interface IncidentIntakeResponse {
+  incident: IncidentSummary;
+  location: string;
 }
 
 export interface EvidenceItem {
@@ -36,6 +60,12 @@ export interface KnowledgeDocument {
   path: string;
 }
 
+export interface RetrievalResult {
+  documents: KnowledgeDocument[];
+  distractors: KnowledgeDocument[];
+  coverageGaps: string[];
+}
+
 export interface Hypothesis {
   id: string;
   statement: string;
@@ -44,11 +74,25 @@ export interface Hypothesis {
   supportingEvidenceIds: string[];
 }
 
+export interface HypothesisResult {
+  hypotheses: Hypothesis[];
+  topHypothesis: Hypothesis | null;
+  confidence: number;
+  recommendedChecks: string[];
+}
+
 export interface RemediationStep {
   id: string;
   action: string;
   owner: string;
   priority: "immediate" | "next" | "follow-up";
+}
+
+export interface RemediationResult {
+  immediateActions: RemediationStep[];
+  followUpActions: RemediationStep[];
+  risks: string[];
+  requiresReview: boolean;
 }
 
 export interface PostmortemSummary {
@@ -60,7 +104,7 @@ export interface PostmortemSummary {
 
 export interface WorkflowTraceStep {
   agent: string;
-  status: "completed" | "skipped";
+  status: TraceStatus;
   summary: string;
 }
 
@@ -86,23 +130,37 @@ export interface InvestigationRunSummary {
   createdAt: string;
 }
 
-export interface IncidentDetail extends IncidentSummary {
-  timeline: string[];
-}
-
-export interface RunInvestigationRequest {
-  incidentId: string;
+export interface InvestigationRunResponse {
+  run: InvestigationRunSummary;
+  result: InvestigationResult;
 }
 
 export interface InvestigationRunListResponse {
   runs: InvestigationRunSummary[];
 }
 
-export interface ErrorEnvelope {
-  error: {
-    code: string;
-    message: string;
-  };
+export interface RetrievalResponse {
+  run: InvestigationRunSummary;
+  retrieval: RetrievalResult;
+}
+
+export interface HypothesisResponse {
+  run: InvestigationRunSummary;
+  hypothesis: HypothesisResult;
+}
+
+export interface RemediationResponse {
+  run: InvestigationRunSummary;
+  remediation: RemediationResult;
+}
+
+export interface PostmortemResponse {
+  run: InvestigationRunSummary;
+  postmortem: PostmortemSummary;
+}
+
+export interface RunInvestigationRequest {
+  incidentId: string;
 }
 
 export interface ReadinessResponse {
@@ -112,4 +170,11 @@ export interface ReadinessResponse {
     status: "pass" | "fail";
     detail: string;
   }[];
+}
+
+export interface ErrorEnvelope {
+  error: {
+    code: string;
+    message: string;
+  };
 }

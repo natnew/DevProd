@@ -1,0 +1,13 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://devprod.local/schemas/incident-intake-response.schema.json",
+  "type": "object",
+  "required": ["incident", "location"],
+  "properties": {
+    "incident": {
+      "$ref": "https://devprod.local/schemas/incident-summary.schema.json"
+    },
+    "location": { "type": "string" }
+  },
+  "additionalProperties": false
+}

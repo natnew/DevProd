@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://devprod.local/schemas/investigation-run-response.schema.json",
+  "type": "object",
+  "required": ["run", "result"],
+  "properties": {
+    "run": {
+      "type": "object",
+      "required": [
+        "id",
+        "incidentId",
+        "incidentTitle",
+        "providerMode",
+        "evaluationScore",
+        "rootCause",
+        "createdAt"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "incidentId": { "type": "string" },
+        "incidentTitle": { "type": "string" },
+        "providerMode": { "enum": ["demo", "live"] },
+        "evaluationScore": { "type": "number", "minimum": 0, "maximum": 100 },
+        "rootCause": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": false
+    },
+    "result": {
+      "$ref": "https://devprod.local/schemas/investigation-result.schema.json"
+    }
+  },
+  "additionalProperties": false
+}

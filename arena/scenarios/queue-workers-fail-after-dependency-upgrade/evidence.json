@@ -1,0 +1,23 @@
+[
+  {
+    "id": "ev-1",
+    "kind": "alert",
+    "summary": "Billing queue depth surge",
+    "detail": "Queue depth increased from 120 to 8,400 jobs within 12 minutes after rollout.",
+    "source": "monitoring/billing-queue-depth"
+  },
+  {
+    "id": "ev-2",
+    "kind": "log",
+    "summary": "Event envelope deserialization failure",
+    "detail": "TypeError: EventEnvelope.__init__() got an unexpected keyword argument 'retry_after_seconds'.",
+    "source": "billing-worker/logs"
+  },
+  {
+    "id": "ev-3",
+    "kind": "metric",
+    "summary": "Database remains healthy during worker failures",
+    "detail": "Database CPU and lock wait time remain within normal range during the backlog spike.",
+    "source": "monitoring/postgres-locks"
+  }
+]

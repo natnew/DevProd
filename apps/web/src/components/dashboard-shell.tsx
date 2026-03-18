@@ -1,10 +1,6 @@
 "use client";
 
-import type {
-  IncidentDetail,
-  InvestigationResult,
-  InvestigationRunSummary
-} from "@devprod/contracts";
+import type { IncidentDetail, InvestigationRunResponse, InvestigationRunSummary } from "@devprod/contracts";
 import { useEffect, useState, useTransition } from "react";
 
 import type { DashboardData } from "@/lib/api";
@@ -13,7 +9,7 @@ import { getIncidentDetail, getRecentRuns, runInvestigation } from "@/lib/api";
 export function DashboardShell({ initialData }: { initialData: DashboardData }) {
   const [selectedId, setSelectedId] = useState<string>(initialData.incidents[0]?.id ?? "");
   const [incidentDetail, setIncidentDetail] = useState<IncidentDetail | null>(null);
-  const [investigation, setInvestigation] = useState<InvestigationResult | null>(null);
+  const [investigation, setInvestigation] = useState<InvestigationRunResponse | null>(null);
   const [recentRuns, setRecentRuns] = useState<InvestigationRunSummary[]>(initialData.recentRuns);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [investigationError, setInvestigationError] = useState<string | null>(null);
@@ -25,6 +21,7 @@ export function DashboardShell({ initialData }: { initialData: DashboardData }) 
     }
 
     let isMounted = true;
+    setDetailError(null);
     getIncidentDetail(selectedId)
       .then((payload) => {
         if (isMounted) {
@@ -70,23 +67,23 @@ export function DashboardShell({ initialData }: { initialData: DashboardData }) 
     });
   }
 
+  const result = investigation?.result ?? null;
+
   return (
     <main className="page-shell">
       <div className="page-grid">
         <section className="hero">
           <h1>DevProd Control Plane</h1>
           <p>
-            Deterministic incident response workflow with evidence, change correlation, retrieval,
-            remediation, and evaluation scoring.
+            Local incident workflow stub with scenario-backed evidence, retrieval, ranked
+            hypotheses, remediation planning, and benchmark scoring.
           </p>
           <div className="hero-meta">
-            <span className="chip">Seeded scenario set</span>
+            <span className="chip">Scenario-backed workflow</span>
             <span className="chip">
               {initialData.readiness.status === "ready" ? "Readiness green" : "Readiness degraded"}
             </span>
-            <span className="chip">
-              {initialData.readiness.checks.find((check) => check.name === "mode")?.detail}
-            </span>
+            <span className="chip">{initialData.incidents.length} seeded incidents</span>
           </div>
         </section>
 
@@ -121,7 +118,9 @@ export function DashboardShell({ initialData }: { initialData: DashboardData }) 
               <div className="action-row">
                 <div>
                   <h2>Investigation View</h2>
-                  <p className="muted">Structured context and operator actions for the selected incident.</p>
+                  <p className="muted">
+                    Structured context and operator actions for the selected incident.
+                  </p>
                 </div>
                 <button
                   className="primary-button"
@@ -139,8 +138,11 @@ export function DashboardShell({ initialData }: { initialData: DashboardData }) 
                   <div>
                     <h3>{incidentDetail.title}</h3>
                     <p className="muted">
-                      {incidentDetail.service} {" · "} {incidentDetail.startedAt}
+                      {incidentDetail.service} · {incidentDetail.startedAt}
                     </p>
+                    {incidentDetail.customerImpact ? (
+                      <p>{incidentDetail.customerImpact}</p>
+                    ) : null}
                   </div>
                   <div>
                     <h3>Timeline</h3>
@@ -159,15 +161,15 @@ export function DashboardShell({ initialData }: { initialData: DashboardData }) 
             <section className="panel-grid">
               <section className="panel">
                 <h2>Evidence And Changes</h2>
-                {investigation ? (
+                {result ? (
                   <div className="stack">
-                    {investigation.evidence.map((item) => (
+                    {result.evidence.map((item) => (
                       <article key={item.id}>
                         <strong>{item.summary}</strong>
                         <p>{item.detail}</p>
                       </article>
                     ))}
-                    {investigation.changes.map((change) => (
+                    {result.changes.map((change) => (
                       <article key={change.id}>
                         <strong>{change.title}</strong>
                         <p>{change.summary}</p>
@@ -181,15 +183,15 @@ export function DashboardShell({ initialData }: { initialData: DashboardData }) 
 
               <section className="panel">
                 <h2>Knowledge And Hypotheses</h2>
-                {investigation ? (
+                {result ? (
                   <div className="stack">
-                    {investigation.knowledge.map((doc) => (
+                    {result.knowledge.map((doc) => (
                       <article key={doc.id}>
                         <strong>{doc.title}</strong>
                         <p>{doc.excerpt}</p>
                       </article>
                     ))}
-                    {investigation.hypotheses.map((hypothesis) => (
+                    {result.hypotheses.map((hypothesis) => (
                       <article key={hypothesis.id}>
                         <strong>{hypothesis.statement}</strong>
                         <p>{hypothesis.rationale}</p>
@@ -197,23 +199,25 @@ export function DashboardShell({ initialData }: { initialData: DashboardData }) 
                     ))}
                   </div>
                 ) : (
-                  <p className="muted">Knowledge retrieval and ranked hypotheses appear after investigation.</p>
+                  <p className="muted">
+                    Knowledge retrieval and ranked hypotheses appear after investigation.
+                  </p>
                 )}
               </section>
 
               <section className="panel">
                 <h2>Remediation</h2>
-                {investigation ? (
+                {result ? (
                   <div className="stack">
-                    {investigation.remediation.map((step) => (
+                    {result.remediation.map((step) => (
                       <article key={step.id}>
                         <strong>{step.priority}</strong>
                         <p>{step.action}</p>
                       </article>
                     ))}
                     <article>
-                      <strong>{investigation.postmortem.title}</strong>
-                      <p>{investigation.postmortem.rootCause}</p>
+                      <strong>{result.postmortem.title}</strong>
+                      <p>{result.postmortem.rootCause}</p>
                     </article>
                   </div>
                 ) : (
@@ -224,13 +228,16 @@ export function DashboardShell({ initialData }: { initialData: DashboardData }) 
               <section className="panel">
                 <h2>Trace And Evaluation</h2>
                 {investigationError ? <p role="alert">{investigationError}</p> : null}
-                {investigation ? (
+                {investigation && result ? (
                   <div className="stack">
                     <p>
-                      Evaluation score: <strong>{investigation.evaluationScore}</strong>
+                      Run <strong>{investigation.run.id}</strong> · {investigation.run.providerMode} mode
+                    </p>
+                    <p>
+                      Evaluation score: <strong>{result.evaluationScore}</strong>
                     </p>
                     <ol className="trace-list">
-                      {investigation.trace.map((step) => (
+                      {result.trace.map((step) => (
                         <li key={step.agent}>
                           <strong>{step.agent}</strong>: {step.summary}
                         </li>
@@ -250,15 +257,16 @@ export function DashboardShell({ initialData }: { initialData: DashboardData }) 
                       <article key={run.id}>
                         <strong>{run.incidentTitle}</strong>
                         <p>
-                          {run.providerMode} mode {" · "} score {run.evaluationScore} {" · "}{" "}
-                          {run.createdAt}
+                          {run.providerMode} mode · score {run.evaluationScore} · {run.createdAt}
                         </p>
                         <p>{run.rootCause}</p>
                       </article>
                     ))}
                   </div>
                 ) : (
-                  <p className="muted">Investigation runs will appear here once the workflow executes.</p>
+                  <p className="muted">
+                    Investigation runs will appear here once the workflow executes.
+                  </p>
                 )}
               </section>
             </section>

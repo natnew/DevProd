@@ -1,0 +1,23 @@
+[
+  {
+    "id": "ev-1",
+    "kind": "alert",
+    "summary": "Catalog API p95 latency regression",
+    "detail": "p95 latency increased from 180ms to 2.8s while request volume remained within normal range.",
+    "source": "monitoring/catalog-latency"
+  },
+  {
+    "id": "ev-2",
+    "kind": "metric",
+    "summary": "Cache miss ratio above 90 percent",
+    "detail": "Hot cache miss ratio spiked immediately after the cache flag change.",
+    "source": "monitoring/catalog-cache"
+  },
+  {
+    "id": "ev-3",
+    "kind": "log",
+    "summary": "Redis timeout pressure after hot cache disable",
+    "detail": "catalog-api logs show repeated Redis timeout warnings after requests fall through the disabled hot cache path.",
+    "source": "catalog-api/logs"
+  }
+]

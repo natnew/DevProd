@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from uuid import uuid4
 
+from devprod_api.exceptions import NotFoundError
 from devprod_api.models import InvestigationResult, InvestigationRunSummary
 
 
@@ -32,6 +33,12 @@ class InvestigationRunStore:
                 )
                 """
             )
+            columns = {
+                row[1]
+                for row in connection.execute("PRAGMA table_info(investigation_runs)").fetchall()
+            }
+            if "result_json" not in columns:
+                connection.execute("ALTER TABLE investigation_runs ADD COLUMN result_json TEXT")
             connection.commit()
 
     def save(self, result: InvestigationResult, provider_mode: str) -> InvestigationRunSummary:
@@ -49,8 +56,8 @@ class InvestigationRunStore:
                 """
                 INSERT INTO investigation_runs (
                     id, incident_id, incident_title, provider_mode,
-                    evaluation_score, root_cause, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    evaluation_score, root_cause, created_at, result_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     record.id,
@@ -60,6 +67,7 @@ class InvestigationRunStore:
                     record.evaluationScore,
                     record.rootCause,
                     record.createdAt,
+                    result.model_dump_json(),
                 ),
             )
             connection.commit()
@@ -89,6 +97,33 @@ class InvestigationRunStore:
             )
             for row in rows
         ]
+
+    def get_run(self, run_id: str) -> tuple[InvestigationRunSummary, InvestigationResult]:
+        with self._connect() as connection:
+            row = connection.execute(
+                """
+                SELECT id, incident_id, incident_title, provider_mode,
+                       evaluation_score, root_cause, created_at, result_json
+                FROM investigation_runs
+                WHERE id = ?
+                """,
+                (run_id,),
+            ).fetchone()
+        if row is None:
+            raise NotFoundError(f"Investigation run '{run_id}' was not found.")
+        if row[7] is None:
+            raise NotFoundError(f"Investigation run '{run_id}' does not have a stored result.")
+        summary = InvestigationRunSummary(
+            id=row[0],
+            incidentId=row[1],
+            incidentTitle=row[2],
+            providerMode=row[3],
+            evaluationScore=row[4],
+            rootCause=row[5],
+            createdAt=row[6],
+        )
+        result = InvestigationResult.model_validate_json(str(row[7]))
+        return summary, result
 
     def readiness(self) -> tuple[str, str]:
         try:

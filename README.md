@@ -1,329 +1,175 @@
 # DevProd
 
-**DevProd** is an agentic engineering control plane for modern software teams.
+DevProd is an AI-powered incident-response control plane for software teams. It helps engineers investigate incidents, correlate recent changes, retrieve runbooks and prior incidents, rank root-cause hypotheses, recommend remediation, and draft postmortems through a bounded multi-agent workflow.
 
-It helps engineers investigate incidents, correlate operational signals with recent changes, retrieve relevant runbooks and prior incidents, rank root-cause hypotheses, propose remediation steps, and draft postmortems.
+This repository is the DigitalOcean Gradient AI Hackathon submission for DevProd.
 
-Unlike traditional coding assistants, DevProd is built for the next era of software engineering: **engineers supervising systems of agents** rather than spending their time manually stitching together logs, dashboards, commits, and tribal knowledge.
+## Hackathon Status
 
-## Core idea
+DevProd is runnable locally and includes:
 
-Software development is moving up a level.
+- a Next.js dashboard
+- a FastAPI backend
+- seeded incident scenarios
+- a retrieval corpus of runbooks, architecture notes, and incidents
+- a prompt bundle for specialized workflow agents
+- evaluation and benchmark artifacts
+- DigitalOcean App Platform deployment configuration
 
-The frontier is no longer just “AI that writes code”. The frontier is **AI that monitors, diagnoses, coordinates, evaluates, and improves engineering workflows**.
+The live public deployment was not completed before the submission deadline. The app is intended to be deployed with DigitalOcean App Platform and DigitalOcean Gradient AI, and the deployment spec is included in [`.do/app.yaml`](./.do/app.yaml).
 
-DevProd is designed for that future.
+## What DevProd Does
 
-It combines:
+Given an incident, DevProd can:
 
-- a **live incident-response control plane**
-- a **multi-agent reasoning workflow**
-- a **knowledge-backed retrieval system**
-- a **bounded improvement loop** inspired by autoresearch-style experimentation
-
-That means DevProd does not merely analyse incidents. It can also **evaluate and improve its own operational playbook** against a benchmark suite of synthetic engineering incidents.
-
----
-
-## Why DevProd exists
-
-Today’s engineering teams lose time during incidents because the relevant context is fragmented across:
-
-- logs
-- alerts
-- recent commits and deployments
-- architecture docs
-- runbooks
-- prior postmortems
-- team memory
-
-DevProd reduces that fragmentation.
-
-Given an incident, it can:
-
-1. classify the issue
-2. gather and structure evidence
+1. classify the issue and investigation path
+2. collect structured evidence
 3. correlate likely causal changes
 4. retrieve relevant operational knowledge
-5. generate ranked hypotheses
-6. recommend next actions
-7. explain its reasoning
-8. draft a postmortem after review
+5. rank root-cause hypotheses
+6. recommend remediation steps
+7. draft a postmortem
+8. expose a reviewable workflow trace
 
-This makes DevProd an **agentic reliability engineer** for software teams.
+## Why DigitalOcean Gradient AI
 
----
+DevProd is designed around DigitalOcean Gradient AI as the hosted AI layer for:
 
-## Why this project is different
-
-DevProd is **not**:
-
-- a generic chat interface for developers
-- a code autocomplete tool
-- a toy “AI debugger”
-- a prototype with a nice landing page and no operational depth
-
-DevProd **is**:
-
-- a working AI-powered application
-- a multi-agent operational system
-- a live dashboard for incident investigation
-- a benchmarked and reviewable engineering workflow
-- a foundation for future self-improving reliability agents
-
----
-
-## How it works
-
-### Live operations layer
-
-When an incident arrives, DevProd runs a structured workflow:
-
-1. **Triage Agent** classifies the issue, severity, and likely investigation path  
-2. **Evidence Agent** parses logs, alerts, and stack traces into structured facts  
-3. **Change Correlation Agent** identifies recent commits, config changes, or deployments likely connected to the issue  
-4. **Knowledge Retrieval Agent** searches runbooks, architecture notes, and prior incidents  
-5. **Hypothesis Agent** ranks likely root causes with supporting evidence  
-6. **Remediation Agent** drafts recommended next steps  
-7. **Postmortem Agent** prepares a concise incident summary and postmortem draft  
-8. **Policy / Review Agent** applies safety and workflow constraints before surfacing actions to the user  
-
-### Improvement layer
-
-DevProd also includes a bounded optimisation loop inspired by autoresearch-style experimentation.
-
-Instead of letting an agent make arbitrary edits across the system, DevProd constrains the editable surface to one or more operational policies such as:
-
-- routing rules
-- retrieval strategy
-- hypothesis ranking rubric
-- remediation policy
-- control instructions for the agent workflow
-
-Each candidate policy is tested against a fixed benchmark suite of synthetic incidents.  
-If the workflow improves on the benchmark, DevProd promotes the change.  
-If it regresses, the change is rejected.
-
-This turns DevProd into a **self-improving agentic engineering system**, not just a static app.
-
----
-
-## Why DigitalOcean Gradient™ AI
-
-DevProd is built on DigitalOcean Gradient™ AI because the platform supports the pieces needed for a production-grade agent workflow:
-
-- agent deployment and orchestration
-- knowledge bases
-- multi-agent routing
-- serverless inference
-- guardrails
-- evaluations
-- logs, insights, and traces
-
-This project is intentionally designed to use those capabilities as part of the product, not as an afterthought.
-
----
-
-## Architecture
-
-### Frontend
-- Next.js dashboard
-- incident inbox
-- investigation view
-- evidence panel
-- hypothesis board
-- remediation panel
-- trace and evaluation views
-
-### Backend
-- Python orchestration service
-- structured workflow execution
-- integration with DigitalOcean Gradient AI
-- synthetic incident replay and benchmark runner
-
-### Gradient AI layer
-- managed agent workflows
-- model inference
-- knowledge base retrieval
-- evaluations
-- traces and logs
-- guardrails
-
----
-
-## Main product screens
-
-### 1. Incident Inbox
-A queue of incidents with service, severity, status, and timestamp.
-
-### 2. Investigation View
-A focused screen showing:
-- parsed evidence
-- recent correlated changes
-- retrieved runbook context
-- ranked hypotheses
-- recommended next actions
-
-### 3. Review Panel
-Allows engineers to:
-- approve or reject recommendations
-- trigger a postmortem draft
-- mark outcomes
-- compare baseline vs improved workflow behaviour
-
-### 4. Trace & Evaluation View
-Shows:
-- which agents ran
-- what evidence was used
-- what knowledge was retrieved
-- how the workflow scored on benchmark incidents
-- whether a workflow variant was promoted or rejected
-
----
-
-## Why this is “production-ready AI”
-
-DevProd is designed around the idea that real AI systems need more than a prompt and a demo video.
-
-This project emphasises:
-
-- bounded agent roles
-- reviewable reasoning
-- retrieval over guessing
-- measurable evaluation
-- guardrails and workflow policy
-- deployment to a live URL
-- a usable interface for real users
-- cost-aware operation
-
-That is the difference between a prototype and an actual application.
-
----
-
-## Benchmark arena
-
-One of DevProd’s key features is its **synthetic incident arena**.
-
-The arena contains benchmark scenarios such as:
-
-- deployment breaks auth flow
-- queue workers fail after dependency upgrade
-- latency spike after config change
-- repeated 500s caused by malformed environment variables
-- outdated runbook retrieval leading to a wrong diagnosis
-- conflicting evidence between logs and recent deploy history
-
-Each scenario has:
-
-- structured incident input
-- relevant knowledge documents
-- distractor context
-- expected root cause
-- acceptable remediation range
-- evaluation rubric
-
-This lets DevProd test whether changes to its workflow actually improve incident analysis.
-
----
-
-## Why this matters
-
-The direction of the industry is clear:
-
-- more agentic systems
-- more orchestration
-- more evaluation
-- more human oversight at the workflow level
-- less direct hand-authoring of every action
-
-DevProd is designed for that shift.
-
-It is an operational interface for the next generation of software engineering:  
-**not developers versus AI, but engineers supervising fleets of bounded, observable, improvable agents.**
-
----
-
-## MVP scope
-
-The MVP includes:
-
-- a working incident dashboard
-- synthetic incident ingestion
-- multi-agent analysis workflow
+- agent orchestration
+- inference
 - knowledge-backed retrieval
-- ranked hypotheses and remediation suggestions
-- postmortem drafting
-- trace and evaluation screens
-- a bounded self-improvement loop
-- a public demo deployment
+- evaluation and traces
+- production deployment paths for AI workflows
 
-The MVP deliberately avoids:
+This submission includes both:
 
-- direct production write access
-- autonomous merges to live systems
-- destructive infra actions
-- unnecessary integration sprawl
-- expensive custom model training
+- a demo provider for local development and hackathon review
+- a live-provider integration path in the backend for DigitalOcean Gradient AI
 
----
+## Repository Structure
 
-## Tech stack
+- [`apps/web`](./apps/web): Next.js dashboard
+- [`apps/api`](./apps/api): FastAPI orchestration service
+- [`agents/devprod-workflow`](./agents/devprod-workflow): workflow prompt bundle
+- [`arena/scenarios`](./arena/scenarios): benchmark incident scenarios
+- [`knowledge`](./knowledge): runbooks, architecture notes, incidents, and postmortems
+- [`evals`](./evals): evaluation helpers and benchmark runner
+- [`packages/contracts`](./packages/contracts): shared API contracts and schemas
+- [`.do/app.yaml`](./.do/app.yaml): DigitalOcean App Platform spec
 
-### Application
-- Next.js
-- TypeScript
-- Python
-- FastAPI
-- Docker
+## Current Features
 
-### AI / orchestration
-- DigitalOcean Gradient™ AI
-- Agent Development Kit (ADK)
-- knowledge bases
-- agent evaluations
-- traces and logs
-- serverless inference
+- Incident inbox and investigation dashboard
+- Structured investigation runs over seeded incidents
+- Retrieval-backed evidence and knowledge surfacing
+- Ranked hypotheses and remediation suggestions
+- Postmortem drafting
+- Reviewable workflow traces
+- Benchmark scenarios with expected outcomes and rubrics
 
-### Demo data
-- synthetic incidents
-- synthetic runbooks
-- synthetic postmortems
-- optional GitHub commit metadata for demo mode
+## Local Setup
 
----
+### Prerequisites
+
+- Node.js 20+
+- Python 3.11+
+- npm
+
+### Environment
+
+Create a local `.env` from [`.env.example`](./.env.example).
+
+For local demo mode, the important values are:
+
+```bash
+APP_BASE_URL=http://localhost:3000
+API_BASE_URL=http://localhost:8000
+INTERNAL_API_BASE_URL=http://localhost:8000
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
+DEMO_MODE=true
+DEVPROD_ENABLE_AUTH=false
+```
+
+### Install
+
+Web dependencies:
+
+```bash
+npm install
+```
+
+API dependencies:
+
+```bash
+cd apps/api
+python -m venv .venv
+.venv\Scripts\pip install -e .[dev]
+```
+
+### Run Locally
+
+From the repository root:
+
+```bash
+npm run dev:api
+```
+
+In a second terminal:
+
+```bash
+npm run dev:web
+```
+
+Or run the containerized local stack:
+
+```bash
+npm run dev
+```
+
+### Tests
+
+Web:
+
+```bash
+npm test
+npm run typecheck
+```
+
+API:
+
+```bash
+cd apps/api
+.venv\Scripts\python.exe -m pytest tests\test_api.py tests\test_evaluation.py tests\test_providers.py
+```
 
 ## Deployment
 
-DevProd is intended to be deployed as a live web application.
+The repository includes a DigitalOcean App Platform spec in [`.do/app.yaml`](./.do/app.yaml) for:
 
-### Recommended deployment
-- **Frontend**: DigitalOcean App Platform
-- **Backend / API**: DigitalOcean App Platform or container service
-- **AI workflow**: DigitalOcean Gradient™ AI hosted agents and inference
-- **Public demo URL**: `https://devprod.<your-domain>`
+- `web`: Next.js frontend
+- `api`: FastAPI backend
 
-This keeps the architecture simple, cheap, and easy for judges to access.
+The intended production topology is:
 
----
+- DigitalOcean App Platform for the web and API services
+- DigitalOcean Gradient AI for live AI-backed workflow execution
 
-## Setup
+For the hackathon submission, local demo mode is the primary supported path.
 
-### Prerequisites
-- DigitalOcean account
-- Gradient AI access enabled
-- Node.js 20+
-- Python 3.10+
-- Git
+## Demo Scenarios
 
-### Environment variables
+The seeded arena currently includes:
 
-Create a `.env` file using `.env.example`.
+- deployment breaks auth flow
+- queue workers fail after dependency upgrade
+- latency spike after cache config change
 
-Required variables:
+These scenarios are paired with retrieval documents, expected outcomes, and scoring rubrics so the workflow can be reviewed and benchmarked.
 
-```bash
-DIGITALOCEAN_ACCESS_TOKEN=
-GRADIENT_MODEL_ACCESS_KEY=
-APP_BASE_URL=http://localhost:3000
-API_BASE_URL=http://localhost:8000
-DEMO_MODE=true
+## Submission Note
+
+This project is submitted as a new application built for the DigitalOcean Gradient AI Hackathon. The public repository contains the full source code, local run instructions, benchmark artifacts, and deployment configuration needed to evaluate the project.
+
+## License
+
+This project is licensed under the MIT License. See [LICENSE](./LICENSE).

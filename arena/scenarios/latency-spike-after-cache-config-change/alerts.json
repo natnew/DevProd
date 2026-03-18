@@ -1,0 +1,10 @@
+[
+  {
+    "id": "alert-catalog-latency",
+    "source": "monitoring/catalog-latency",
+    "severity": "high",
+    "triggered_at": "2026-03-18T11:20:00Z",
+    "summary": "Catalog API p95 latency above threshold",
+    "detail": "Latency exceeded 2.5 seconds for 10 consecutive minutes."
+  }
+]

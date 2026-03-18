@@ -1,0 +1,23 @@
+[
+  {
+    "id": "ev-1",
+    "kind": "alert",
+    "summary": "Authentication error rate above threshold",
+    "detail": "401 responses increased from 0.5% to 38% over 5 minutes for checkout-api.",
+    "source": "monitoring/auth-errors"
+  },
+  {
+    "id": "ev-2",
+    "kind": "log",
+    "summary": "JWT issuer mismatch in checkout-api",
+    "detail": "Token validation failed because configured issuer does not match the production issuer in incoming tokens.",
+    "source": "checkout-api/logs"
+  },
+  {
+    "id": "ev-3",
+    "kind": "metric",
+    "summary": "Incident timing follows deployment and config change",
+    "detail": "The 401 spike starts within two minutes of the AUTH_ISSUER update and deployment 2026.03.16-1.",
+    "source": "deployments/checkout-api"
+  }
+]

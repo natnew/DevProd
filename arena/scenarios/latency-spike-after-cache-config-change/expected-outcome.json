@@ -1,0 +1,19 @@
+{
+  "scenario_id": "latency-spike-after-cache-config-change",
+  "root_cause": "A production config change disabled the catalog hot cache path, driving cache misses and Redis timeout-induced latency in catalog-api.",
+  "supporting_evidence": [
+    "Latency spikes begin immediately after the hot cache flag change.",
+    "Cache miss ratio rises above 90 percent while traffic stays normal.",
+    "Logs show Redis timeout pressure instead of downstream database failures."
+  ],
+  "acceptable_remediations": [
+    "Restore the hot cache configuration or roll back the cache-related config change.",
+    "Validate cache hit ratio and catalog latency after the rollback.",
+    "Add configuration guards and synthetic checks for cache-path disabling in production."
+  ],
+  "required_reasoning_steps": [
+    "Correlate the latency increase with the cache flag rollout.",
+    "Use the cache miss and timeout evidence to reject unrelated traffic explanations.",
+    "Recommend restoring the cache path before tuning unrelated dependencies."
+  ]
+}

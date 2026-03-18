@@ -1,0 +1,18 @@
+[
+  {
+    "id": "alert-auth-errors",
+    "source": "monitoring/auth-errors",
+    "severity": "critical",
+    "triggered_at": "2026-03-16T08:10:00Z",
+    "summary": "Authentication error rate above threshold for checkout-api",
+    "detail": "401 responses increased from 0.5% to 38% over 5 minutes."
+  },
+  {
+    "id": "alert-key-rotation-warning",
+    "source": "monitoring/key-rotation",
+    "severity": "warning",
+    "triggered_at": "2026-03-16T07:55:00Z",
+    "summary": "Upcoming signing key rotation reminder",
+    "detail": "Routine reminder that identity signing keys rotate within 72 hours. No failed validations observed in other services."
+  }
+]

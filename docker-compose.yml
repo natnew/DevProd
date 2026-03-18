@@ -12,6 +12,7 @@ services:
       DEVPROD_ENABLE_AUTH: "false"
       DEVPROD_RATE_LIMIT_PER_MINUTE: "60"
       DEVPROD_ALLOWED_ORIGINS: http://localhost:3000
+      DEVPROD_RUN_HISTORY_DB_PATH: /app/devprod_history.sqlite3
     ports:
       - "8000:8000"
 
@@ -20,6 +21,7 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
     environment:
+      INTERNAL_API_BASE_URL: http://api:8000
       API_BASE_URL: http://api:8000
       NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
     depends_on:

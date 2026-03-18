@@ -24,6 +24,25 @@ class IncidentSummary(BaseModel):
 
 class IncidentDetail(IncidentSummary):
     timeline: list[str]
+    environment: str | None = None
+    customerImpact: str | None = None
+
+
+class IncidentIntakeRequest(BaseModel):
+    title: str
+    service: str
+    severity: Severity
+    summary: str
+    environment: str = "production"
+    customerImpact: str | None = None
+    initialSignals: list[str] = Field(default_factory=list)
+    timeline: list[str] = Field(default_factory=list)
+    suspectedComponents: list[str] = Field(default_factory=list)
+
+
+class IncidentIntakeResponse(BaseModel):
+    incident: IncidentSummary
+    location: str
 
 
 class EvidenceItem(BaseModel):
@@ -51,6 +70,12 @@ class KnowledgeDocument(BaseModel):
     path: str
 
 
+class RetrievalResult(BaseModel):
+    documents: list[KnowledgeDocument]
+    distractors: list[KnowledgeDocument]
+    coverageGaps: list[str]
+
+
 class Hypothesis(BaseModel):
     id: str
     statement: str
@@ -59,11 +84,25 @@ class Hypothesis(BaseModel):
     supportingEvidenceIds: list[str]
 
 
+class HypothesisResult(BaseModel):
+    hypotheses: list[Hypothesis]
+    topHypothesis: Hypothesis | None = None
+    confidence: float = Field(ge=0, le=1)
+    recommendedChecks: list[str]
+
+
 class RemediationStep(BaseModel):
     id: str
     action: str
     owner: str
     priority: RemediationPriority
+
+
+class RemediationResult(BaseModel):
+    immediateActions: list[RemediationStep]
+    followUpActions: list[RemediationStep]
+    risks: list[str]
+    requiresReview: bool
 
 
 class PostmortemSummary(BaseModel):
@@ -101,6 +140,35 @@ class InvestigationRunSummary(BaseModel):
     createdAt: str
 
 
+class InvestigationRunResponse(BaseModel):
+    run: InvestigationRunSummary
+    result: InvestigationResult
+
+
+class InvestigationRunListResponse(BaseModel):
+    runs: list[InvestigationRunSummary]
+
+
+class RetrievalResponse(BaseModel):
+    run: InvestigationRunSummary
+    retrieval: RetrievalResult
+
+
+class HypothesisResponse(BaseModel):
+    run: InvestigationRunSummary
+    hypothesis: HypothesisResult
+
+
+class RemediationResponse(BaseModel):
+    run: InvestigationRunSummary
+    remediation: RemediationResult
+
+
+class PostmortemResponse(BaseModel):
+    run: InvestigationRunSummary
+    postmortem: PostmortemSummary
+
+
 class IncidentListResponse(BaseModel):
     incidents: list[IncidentSummary]
 
@@ -114,10 +182,6 @@ class RuntimeConfigResponse(BaseModel):
     authEnabled: bool
     rateLimitPerMinute: int
     providerMode: Literal["demo", "live"]
-
-
-class InvestigationRunListResponse(BaseModel):
-    runs: list[InvestigationRunSummary]
 
 
 class ReadinessCheck(BaseModel):

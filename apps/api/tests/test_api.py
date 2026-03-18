@@ -1,4 +1,5 @@
 import json
+import shutil
 from collections.abc import Generator
 from pathlib import Path
 from uuid import uuid4
@@ -20,6 +21,11 @@ SCHEMA_ROOT = ROOT / "packages" / "contracts" / "schemas"
 @pytest.fixture(autouse=True)
 def clear_state(monkeypatch: pytest.MonkeyPatch) -> None:
     history_path = ROOT / "apps" / "api" / f"test-history-{uuid4()}.sqlite3"
+    intake_root = ROOT / "arena" / "intake"
+    if intake_root.exists():
+        for path in intake_root.iterdir():
+            if path.is_dir():
+                shutil.rmtree(path)
     monkeypatch.setenv("DEVPROD_RUN_HISTORY_DB_PATH", str(history_path))
     get_settings.cache_clear()
     rate_limiter._buckets.clear()
@@ -49,12 +55,34 @@ def test_list_incidents_contract(client: TestClient) -> None:
     response = client.get("/v1/incidents")
     assert response.status_code == 200
     _validate_schema("incident-list-response.schema.json", response.json())
+    ids = [incident["id"] for incident in response.json()["incidents"]]
+    assert ids == [
+        "deployment-breaks-auth-flow",
+        "latency-spike-after-cache-config-change",
+        "queue-workers-fail-after-dependency-upgrade",
+    ]
 
 
-def test_get_incident(client: TestClient) -> None:
-    response = client.get("/v1/incidents/inc-auth-001")
+def test_get_incident_detail_contract(client: TestClient) -> None:
+    response = client.get("/v1/incidents/deployment-breaks-auth-flow")
     assert response.status_code == 200
+    _validate_schema("incident-detail.schema.json", response.json())
     assert response.json()["timeline"]
+
+
+def test_incident_intake_contract(client: TestClient) -> None:
+    response = client.post(
+        "/v1/incidents",
+        json={
+            "title": "Checkout login degraded after release",
+            "service": "checkout-api",
+            "severity": "high",
+            "summary": "Synthetic intake for local API testing."
+        },
+    )
+    assert response.status_code == 200
+    _validate_schema("incident-intake-response.schema.json", response.json())
+    assert response.json()["incident"]["status"] == "open"
 
 
 def test_not_found_is_masked_domain_error(client: TestClient) -> None:
@@ -65,22 +93,46 @@ def test_not_found_is_masked_domain_error(client: TestClient) -> None:
     }
 
 
-def test_run_investigation_contract(client: TestClient) -> None:
-    response = client.post("/v1/investigations", json={"incidentId": "inc-auth-001"})
+def test_run_investigation_and_step_endpoints(client: TestClient) -> None:
+    response = client.post("/v1/investigations", json={"incidentId": "deployment-breaks-auth-flow"})
     assert response.status_code == 200
-    _validate_schema("investigation-result.schema.json", response.json())
-    assert response.json()["evaluationScore"] == 100
+    _validate_schema("investigation-run-response.schema.json", response.json())
+    run_id = response.json()["run"]["id"]
+    assert response.json()["result"]["evaluationScore"] >= 90
+
+    run_response = client.get(f"/v1/investigations/{run_id}")
+    assert run_response.status_code == 200
+    _validate_schema("investigation-run-response.schema.json", run_response.json())
+
+    retrieval_response = client.get(f"/v1/investigations/{run_id}/retrieval")
+    assert retrieval_response.status_code == 200
+    _validate_schema("retrieval-response.schema.json", retrieval_response.json())
+    assert retrieval_response.json()["retrieval"]["documents"]
+
+    hypothesis_response = client.get(f"/v1/investigations/{run_id}/hypotheses")
+    assert hypothesis_response.status_code == 200
+    _validate_schema("hypothesis-response.schema.json", hypothesis_response.json())
+    assert hypothesis_response.json()["hypothesis"]["topHypothesis"]["statement"]
+
+    remediation_response = client.get(f"/v1/investigations/{run_id}/remediation")
+    assert remediation_response.status_code == 200
+    _validate_schema("remediation-response.schema.json", remediation_response.json())
+    assert remediation_response.json()["remediation"]["requiresReview"] is True
+
+    postmortem_response = client.get(f"/v1/investigations/{run_id}/postmortem")
+    assert postmortem_response.status_code == 200
+    _validate_schema("postmortem-response.schema.json", postmortem_response.json())
 
 
 def test_recent_runs_persist_after_investigation(client: TestClient) -> None:
-    run_response = client.post("/v1/investigations", json={"incidentId": "inc-auth-001"})
+    run_response = client.post("/v1/investigations", json={"incidentId": "deployment-breaks-auth-flow"})
     assert run_response.status_code == 200
 
     history_response = client.get("/v1/investigations/runs")
     assert history_response.status_code == 200
     body = history_response.json()
     assert len(body["runs"]) == 1
-    assert body["runs"][0]["incidentId"] == "inc-auth-001"
+    assert body["runs"][0]["incidentId"] == "deployment-breaks-auth-flow"
     assert body["runs"][0]["providerMode"] == "demo"
 
 
@@ -114,14 +166,15 @@ def test_runtime_config_includes_provider_mode(client: TestClient) -> None:
 
 
 def _validate_schema(schema_name: str, payload: dict[str, object]) -> None:
+    registry = Registry()
+    for schema_path in SCHEMA_ROOT.glob("*.json"):
+        with schema_path.open("r", encoding="utf-8") as handle:
+            schema = json.load(handle)
+        registry = registry.with_resource(schema["$id"], Resource.from_contents(schema))
+
     with (SCHEMA_ROOT / schema_name).open("r", encoding="utf-8") as handle:
         schema = json.load(handle)
-    with (SCHEMA_ROOT / "incident-summary.schema.json").open("r", encoding="utf-8") as handle:
-        incident_summary = json.load(handle)
-    registry = Registry().with_resource(
-        incident_summary["$id"],
-        Resource.from_contents(incident_summary),
-    )
+
     validator = Draft202012Validator(
         schema,
         registry=registry,

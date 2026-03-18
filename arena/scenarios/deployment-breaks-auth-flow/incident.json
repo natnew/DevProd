@@ -1,0 +1,46 @@
+{
+  "id": "deployment-breaks-auth-flow",
+  "title": "Checkout authentication failures after deployment",
+  "service": "checkout-api",
+  "severity": "SEV1",
+  "summary": "Users receive repeated 401 responses from checkout-api immediately after the 2026.03.16-1 deployment.",
+  "environment": "production",
+  "customer_impact": "Customers cannot complete checkout because authenticated sessions are rejected.",
+  "initial_signals": [
+    "Alert: checkout-api authentication error rate rose from 0.5% to 38% in 5 minutes.",
+    "Support reports customer login failures during checkout.",
+    "Deployment 2026.03.16-1 completed on checkout-api at 2026-03-16T08:15:00Z."
+  ],
+  "timeline": [
+    {
+      "timestamp": "2026-03-16T08:10:00Z",
+      "event": "Alert opened for authentication error spike on checkout-api."
+    },
+    {
+      "timestamp": "2026-03-16T08:12:00Z",
+      "event": "Support reports multiple customer complaints about repeated 401 responses."
+    },
+    {
+      "timestamp": "2026-03-16T08:13:00Z",
+      "event": "AUTH_ISSUER environment variable updated in the production slot."
+    },
+    {
+      "timestamp": "2026-03-16T08:15:00Z",
+      "event": "Deployment 2026.03.16-1 completed for checkout-api."
+    },
+    {
+      "timestamp": "2026-03-16T08:17:00Z",
+      "event": "JWT issuer mismatch errors begin appearing in checkout-api logs."
+    }
+  ],
+  "suspected_components": [
+    "checkout-api",
+    "identity-provider",
+    "deployment-config"
+  ],
+  "artifacts": [
+    "alerts.json",
+    "change-log.json",
+    "retrieval-context.md"
+  ]
+}

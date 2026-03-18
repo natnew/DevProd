@@ -1,0 +1,39 @@
+{
+  "id": "latency-spike-after-cache-config-change",
+  "title": "Catalog latency spike after cache configuration change",
+  "service": "catalog-api",
+  "severity": "high",
+  "summary": "Catalog API latency jumps after a cache configuration update disables the hot cache path.",
+  "environment": "production",
+  "customer_impact": "Product listing pages load slowly and some requests time out during browsing.",
+  "initial_signals": [
+    "Alert: p95 latency on catalog-api rose from 180ms to 2.8s within 8 minutes.",
+    "Cache miss ratio climbed above 90% after a config rollout.",
+    "Search traffic volume is normal for the time window."
+  ],
+  "timeline": [
+    {
+      "timestamp": "2026-03-18T11:20:00Z",
+      "event": "Catalog API latency alert opened."
+    },
+    {
+      "timestamp": "2026-03-18T11:23:00Z",
+      "event": "CATALOG_HOT_CACHE_ENABLED flag changed in production."
+    },
+    {
+      "timestamp": "2026-03-18T11:27:00Z",
+      "event": "Cache miss ratio and upstream Redis timeouts rise together."
+    }
+  ],
+  "suspected_components": [
+    "catalog-api",
+    "redis-cache",
+    "hot-cache-config"
+  ],
+  "artifacts": [
+    "evidence.json",
+    "alerts.json",
+    "change-log.json",
+    "retrieval-context.md"
+  ]
+}

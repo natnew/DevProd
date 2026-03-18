@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://devprod.local/schemas/hypothesis-response.schema.json",
+  "type": "object",
+  "required": ["run", "hypothesis"],
+  "properties": {
+    "run": {
+      "type": "object",
+      "required": [
+        "id",
+        "incidentId",
+        "incidentTitle",
+        "providerMode",
+        "evaluationScore",
+        "rootCause",
+        "createdAt"
+      ],
+      "properties": {
+        "id": { "type": "string" },
+        "incidentId": { "type": "string" },
+        "incidentTitle": { "type": "string" },
+        "providerMode": { "enum": ["demo", "live"] },
+        "evaluationScore": { "type": "number", "minimum": 0, "maximum": 100 },
+        "rootCause": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "additionalProperties": false
+    },
+    "hypothesis": {
+      "type": "object",
+      "required": ["hypotheses", "topHypothesis", "confidence", "recommendedChecks"],
+      "properties": {
+        "hypotheses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "statement", "confidence", "rationale", "supportingEvidenceIds"],
+            "properties": {
+              "id": { "type": "string" },
+              "statement": { "type": "string" },
+              "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+              "rationale": { "type": "string" },
+              "supportingEvidenceIds": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            },
+            "additionalProperties": false
+          }
+        },
+        "topHypothesis": {
+          "type": ["object", "null"],
+          "required": ["id", "statement", "confidence", "rationale", "supportingEvidenceIds"],
+          "properties": {
+            "id": { "type": "string" },
+            "statement": { "type": "string" },
+            "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+            "rationale": { "type": "string" },
+            "supportingEvidenceIds": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          },
+          "additionalProperties": false
+        },
+        "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "recommendedChecks": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

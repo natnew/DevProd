@@ -1,6 +1,6 @@
 import logging
-from contextlib import asynccontextmanager
 from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, Header, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,13 +10,19 @@ from devprod_api.config import Settings, get_settings
 from devprod_api.exceptions import DevProdError
 from devprod_api.knowledge import KnowledgeRepository
 from devprod_api.models import (
-    ErrorEnvelope,
     ErrorDetail,
+    ErrorEnvelope,
+    HypothesisResponse,
     IncidentDetail,
+    IncidentIntakeRequest,
+    IncidentIntakeResponse,
     IncidentListResponse,
     InvestigationRunListResponse,
-    InvestigationResult,
+    InvestigationRunResponse,
+    PostmortemResponse,
     ReadinessResponse,
+    RemediationResponse,
+    RetrievalResponse,
     RunInvestigationRequest,
     RuntimeConfigResponse,
 )
@@ -42,13 +48,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.workflow = WorkflowService(
         settings=settings,
         incident_repository=app.state.incidents,
+        knowledge_repository=app.state.knowledge,
         provider=app.state.provider,
         run_store=app.state.run_store,
     )
     yield
 
 
-app = FastAPI(title="DevProd API", version="0.1.0", lifespan=lifespan)
+app = FastAPI(title="DevProd API", version="0.2.0", lifespan=lifespan)
 
 
 def get_runtime_settings() -> Settings:
@@ -82,7 +89,9 @@ async def handle_domain_error(_: Request, exc: DevProdError) -> JSONResponse:
 @app.exception_handler(Exception)
 async def handle_unexpected_error(request: Request, exc: Exception) -> JSONResponse:
     logger.exception("Unhandled error on %s %s", request.method, request.url.path, exc_info=exc)
-    payload = ErrorEnvelope(error=ErrorDetail(code="internal_error", message="An internal error occurred."))
+    payload = ErrorEnvelope(
+        error=ErrorDetail(code="internal_error", message="An internal error occurred.")
+    )
     return JSONResponse(status_code=500, content=payload.model_dump())
 
 
@@ -113,6 +122,15 @@ async def list_incidents(request: Request) -> IncidentListResponse:
     return IncidentListResponse(incidents=repository.list_incidents())
 
 
+@app.post("/v1/incidents", response_model=IncidentIntakeResponse, dependencies=[Depends(guard_request)])
+async def intake_incident(
+    payload: IncidentIntakeRequest,
+    request: Request,
+) -> IncidentIntakeResponse:
+    workflow: WorkflowService = request.app.state.workflow
+    return workflow.ingest_incident(payload)
+
+
 @app.get(
     "/v1/incidents/{incident_id}",
     response_model=IncidentDetail,
@@ -125,13 +143,13 @@ async def get_incident(incident_id: str, request: Request) -> IncidentDetail:
 
 @app.post(
     "/v1/investigations",
-    response_model=InvestigationResult,
+    response_model=InvestigationRunResponse,
     dependencies=[Depends(guard_request)],
 )
 async def run_investigation(
     payload: RunInvestigationRequest,
     request: Request,
-) -> InvestigationResult:
+) -> InvestigationRunResponse:
     workflow: WorkflowService = request.app.state.workflow
     return workflow.run(payload.incidentId)
 
@@ -144,3 +162,53 @@ async def run_investigation(
 async def list_recent_runs(request: Request) -> InvestigationRunListResponse:
     workflow: WorkflowService = request.app.state.workflow
     return InvestigationRunListResponse(runs=workflow.list_recent_runs())
+
+
+@app.get(
+    "/v1/investigations/{run_id}",
+    response_model=InvestigationRunResponse,
+    dependencies=[Depends(guard_request)],
+)
+async def get_run(run_id: str, request: Request) -> InvestigationRunResponse:
+    workflow: WorkflowService = request.app.state.workflow
+    return workflow.get_run(run_id)
+
+
+@app.get(
+    "/v1/investigations/{run_id}/retrieval",
+    response_model=RetrievalResponse,
+    dependencies=[Depends(guard_request)],
+)
+async def get_retrieval(run_id: str, request: Request) -> RetrievalResponse:
+    workflow: WorkflowService = request.app.state.workflow
+    return workflow.get_retrieval(run_id)
+
+
+@app.get(
+    "/v1/investigations/{run_id}/hypotheses",
+    response_model=HypothesisResponse,
+    dependencies=[Depends(guard_request)],
+)
+async def get_hypotheses(run_id: str, request: Request) -> HypothesisResponse:
+    workflow: WorkflowService = request.app.state.workflow
+    return workflow.get_hypotheses(run_id)
+
+
+@app.get(
+    "/v1/investigations/{run_id}/remediation",
+    response_model=RemediationResponse,
+    dependencies=[Depends(guard_request)],
+)
+async def get_remediation(run_id: str, request: Request) -> RemediationResponse:
+    workflow: WorkflowService = request.app.state.workflow
+    return workflow.get_remediation(run_id)
+
+
+@app.get(
+    "/v1/investigations/{run_id}/postmortem",
+    response_model=PostmortemResponse,
+    dependencies=[Depends(guard_request)],
+)
+async def get_postmortem(run_id: str, request: Request) -> PostmortemResponse:
+    workflow: WorkflowService = request.app.state.workflow
+    return workflow.get_postmortem(run_id)

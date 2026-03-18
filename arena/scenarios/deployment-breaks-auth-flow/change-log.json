@@ -1,0 +1,18 @@
+[
+  {
+    "id": "chg-1",
+    "type": "config",
+    "service": "checkout-api",
+    "timestamp": "2026-03-16T08:13:00Z",
+    "summary": "Updated AUTH_ISSUER in the production slot during deployment prep.",
+    "detail": "The value was changed from the production identity provider hostname to the staging issuer hostname."
+  },
+  {
+    "id": "chg-2",
+    "type": "deploy",
+    "service": "checkout-api",
+    "timestamp": "2026-03-16T08:15:00Z",
+    "summary": "Rolled out checkout-api release 2026.03.16-1.",
+    "detail": "Release included auth configuration refactor for issuer selection and startup validation logging."
+  }
+]

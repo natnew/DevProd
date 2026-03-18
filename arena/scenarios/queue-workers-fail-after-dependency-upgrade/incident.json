@@ -1,0 +1,39 @@
+{
+  "id": "queue-workers-fail-after-dependency-upgrade",
+  "title": "Billing worker backlog after dependency upgrade",
+  "service": "billing-worker",
+  "severity": "high",
+  "summary": "Billing queue latency climbs sharply after workers are redeployed with a dependency upgrade.",
+  "environment": "production",
+  "customer_impact": "Invoice and receipt events are delayed because billing jobs are not being processed on time.",
+  "initial_signals": [
+    "Alert: billing queue depth grew from 120 to 8,400 jobs within 12 minutes.",
+    "Workers restarted after image rollout billing-worker:2026.03.18-2.",
+    "No corresponding increase in database CPU or lock wait times."
+  ],
+  "timeline": [
+    {
+      "timestamp": "2026-03-18T09:02:00Z",
+      "event": "Billing queue depth alert opened."
+    },
+    {
+      "timestamp": "2026-03-18T09:05:00Z",
+      "event": "Container image billing-worker:2026.03.18-2 rolled out."
+    },
+    {
+      "timestamp": "2026-03-18T09:07:00Z",
+      "event": "Workers begin failing message deserialization during event handling."
+    }
+  ],
+  "suspected_components": [
+    "billing-worker",
+    "event-envelope",
+    "dependency-lockfile"
+  ],
+  "artifacts": [
+    "evidence.json",
+    "alerts.json",
+    "change-log.json",
+    "retrieval-context.md"
+  ]
+}

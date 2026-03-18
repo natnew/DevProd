@@ -1,0 +1,32 @@
+{
+  "scenario_id": "deployment-breaks-auth-flow",
+  "root_cause": "The production AUTH_ISSUER configuration was changed to a staging issuer during deployment 2026.03.16-1, causing JWT issuer validation to fail in checkout-api.",
+  "supporting_evidence": [
+    "The incident starts within minutes of the deployment and production config change.",
+    "checkout-api logs explicitly show JWT issuer mismatch errors.",
+    "The runbook and prior incident both point to issuer drift as a known failure mode."
+  ],
+  "acceptable_remediations": [
+    "Restore AUTH_ISSUER to the production identity provider value.",
+    "Roll back the bad deployment or config change if the correct value cannot be restored safely.",
+    "Add deployment-time validation that rejects staging issuer values in production."
+  ],
+  "required_reasoning_steps": [
+    "Correlate incident timing with the deployment and config update.",
+    "Separate issuer mismatch from the unrelated key rotation warning distractor.",
+    "Use retrieved runbook or prior incident context to justify a safe rollback or config correction."
+  ],
+  "disallowed_claims": [
+    "The root cause was an expired signing key.",
+    "The identity provider itself was down.",
+    "A database outage caused the 401 spike."
+  ],
+  "uncertainty_notes": [
+    "If the config source cannot be confirmed immediately, escalation for production config inspection is acceptable.",
+    "The remediation should stay within safe rollback and validation steps."
+  ],
+  "reviewer_tips": [
+    "Expect the best responses to cite both raw evidence and retrieved operational knowledge.",
+    "Penalize confident guesses that ignore the deployment and config timestamps."
+  ]
+}
