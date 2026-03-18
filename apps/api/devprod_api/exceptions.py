@@ -19,3 +19,8 @@ class UnauthorizedError(DevProdError):
 class RateLimitError(DevProdError):
     def __init__(self, message: str) -> None:
         super().__init__("rate_limited", message, 429)
+
+
+class ServiceUnavailableError(DevProdError):
+    def __init__(self, message: str) -> None:
+        super().__init__("service_unavailable", message, 503)

@@ -91,6 +91,16 @@ class InvestigationResult(BaseModel):
     evaluationScore: float = Field(ge=0, le=100)
 
 
+class InvestigationRunSummary(BaseModel):
+    id: str
+    incidentId: str
+    incidentTitle: str
+    providerMode: Literal["demo", "live"]
+    evaluationScore: float = Field(ge=0, le=100)
+    rootCause: str
+    createdAt: str
+
+
 class IncidentListResponse(BaseModel):
     incidents: list[IncidentSummary]
 
@@ -103,6 +113,22 @@ class RuntimeConfigResponse(BaseModel):
     demoMode: bool
     authEnabled: bool
     rateLimitPerMinute: int
+    providerMode: Literal["demo", "live"]
+
+
+class InvestigationRunListResponse(BaseModel):
+    runs: list[InvestigationRunSummary]
+
+
+class ReadinessCheck(BaseModel):
+    name: str
+    status: Literal["pass", "fail"]
+    detail: str
+
+
+class ReadinessResponse(BaseModel):
+    status: Literal["ready", "degraded"]
+    checks: list[ReadinessCheck]
 
 
 class ErrorDetail(BaseModel):

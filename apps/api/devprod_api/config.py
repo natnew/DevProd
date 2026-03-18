@@ -14,6 +14,13 @@ class Settings(BaseSettings):
     devprod_allowed_origins: list[str] = Field(
         default=["http://localhost:3000"], alias="DEVPROD_ALLOWED_ORIGINS"
     )
+    gradient_api_base_url: str | None = Field(default=None, alias="GRADIENT_API_BASE_URL")
+    gradient_agent_id: str | None = Field(default=None, alias="GRADIENT_AGENT_ID")
+    gradient_model_access_key: str | None = Field(default=None, alias="GRADIENT_MODEL_ACCESS_KEY")
+    devprod_run_history_db_path: str = Field(
+        default="apps/api/devprod_history.sqlite3",
+        alias="DEVPROD_RUN_HISTORY_DB_PATH",
+    )
 
     model_config = SettingsConfigDict(
         env_file=".env",

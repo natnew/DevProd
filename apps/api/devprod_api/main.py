@@ -14,11 +14,15 @@ from devprod_api.models import (
     ErrorDetail,
     IncidentDetail,
     IncidentListResponse,
+    InvestigationRunListResponse,
     InvestigationResult,
+    ReadinessResponse,
     RunInvestigationRequest,
     RuntimeConfigResponse,
 )
+from devprod_api.providers import build_workflow_provider
 from devprod_api.repository import IncidentRepository
+from devprod_api.run_history import InvestigationRunStore
 from devprod_api.security import enforce_request_controls
 from devprod_api.workflow import WorkflowService
 
@@ -33,7 +37,14 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.settings = settings
     app.state.incidents = IncidentRepository()
     app.state.knowledge = KnowledgeRepository()
-    app.state.workflow = WorkflowService(app.state.incidents, app.state.knowledge)
+    app.state.run_store = InvestigationRunStore(settings.devprod_run_history_db_path)
+    app.state.provider = build_workflow_provider(settings, app.state.knowledge)
+    app.state.workflow = WorkflowService(
+        settings=settings,
+        incident_repository=app.state.incidents,
+        provider=app.state.provider,
+        run_store=app.state.run_store,
+    )
     yield
 
 
@@ -80,12 +91,19 @@ async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@app.get("/readiness", response_model=ReadinessResponse)
+async def readiness(request: Request) -> ReadinessResponse:
+    workflow: WorkflowService = request.app.state.workflow
+    return workflow.readiness()
+
+
 @app.get("/v1/config", response_model=RuntimeConfigResponse, dependencies=[Depends(guard_request)])
 async def runtime_config(settings: Settings = Depends(get_runtime_settings)) -> RuntimeConfigResponse:
     return RuntimeConfigResponse(
         demoMode=settings.demo_mode,
         authEnabled=settings.devprod_enable_auth,
         rateLimitPerMinute=settings.devprod_rate_limit_per_minute,
+        providerMode="demo" if settings.demo_mode else "live",
     )
 
 
@@ -116,3 +134,13 @@ async def run_investigation(
 ) -> InvestigationResult:
     workflow: WorkflowService = request.app.state.workflow
     return workflow.run(payload.incidentId)
+
+
+@app.get(
+    "/v1/investigations/runs",
+    response_model=InvestigationRunListResponse,
+    dependencies=[Depends(guard_request)],
+)
+async def list_recent_runs(request: Request) -> InvestigationRunListResponse:
+    workflow: WorkflowService = request.app.state.workflow
+    return InvestigationRunListResponse(runs=workflow.list_recent_runs())

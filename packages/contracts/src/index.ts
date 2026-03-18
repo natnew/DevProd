@@ -76,6 +76,16 @@ export interface InvestigationResult {
   evaluationScore: number;
 }
 
+export interface InvestigationRunSummary {
+  id: string;
+  incidentId: string;
+  incidentTitle: string;
+  providerMode: "demo" | "live";
+  evaluationScore: number;
+  rootCause: string;
+  createdAt: string;
+}
+
 export interface IncidentDetail extends IncidentSummary {
   timeline: string[];
 }
@@ -84,9 +94,22 @@ export interface RunInvestigationRequest {
   incidentId: string;
 }
 
+export interface InvestigationRunListResponse {
+  runs: InvestigationRunSummary[];
+}
+
 export interface ErrorEnvelope {
   error: {
     code: string;
     message: string;
   };
+}
+
+export interface ReadinessResponse {
+  status: "ready" | "degraded";
+  checks: {
+    name: string;
+    status: "pass" | "fail";
+    detail: string;
+  }[];
 }

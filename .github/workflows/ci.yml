@@ -4,6 +4,7 @@ on:
   push:
     branches: ["main"]
   pull_request:
+  workflow_dispatch:
 
 jobs:
   web:
@@ -49,3 +50,20 @@ jobs:
           $env:PYTHONPATH = $PWD
           .\apps\api\.venv\Scripts\python.exe -m pytest apps/api/tests
         shell: pwsh
+
+  public-smoke:
+    if: ${{ github.event_name == 'workflow_dispatch' && vars.PUBLIC_APP_URL != '' && vars.PUBLIC_API_URL != '' }}
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+      - name: Install dependencies
+        run: npm install
+      - name: Smoke deployed URLs
+        env:
+          PUBLIC_APP_URL: ${{ vars.PUBLIC_APP_URL }}
+          PUBLIC_API_URL: ${{ vars.PUBLIC_API_URL }}
+        run: npm run smoke:url

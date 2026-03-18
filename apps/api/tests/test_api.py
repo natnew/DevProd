@@ -1,6 +1,7 @@
 import json
 from collections.abc import Generator
 from pathlib import Path
+from uuid import uuid4
 
 import pytest
 from fastapi.testclient import TestClient
@@ -17,7 +18,9 @@ SCHEMA_ROOT = ROOT / "packages" / "contracts" / "schemas"
 
 
 @pytest.fixture(autouse=True)
-def clear_state() -> None:
+def clear_state(monkeypatch: pytest.MonkeyPatch) -> None:
+    history_path = ROOT / "apps" / "api" / f"test-history-{uuid4()}.sqlite3"
+    monkeypatch.setenv("DEVPROD_RUN_HISTORY_DB_PATH", str(history_path))
     get_settings.cache_clear()
     rate_limiter._buckets.clear()
 
@@ -32,6 +35,14 @@ def test_health(client: TestClient) -> None:
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
+
+def test_readiness(client: TestClient) -> None:
+    response = client.get("/readiness")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["status"] == "ready"
+    assert {check["name"] for check in body["checks"]} == {"provider", "run-history", "mode"}
 
 
 def test_list_incidents_contract(client: TestClient) -> None:
@@ -61,6 +72,18 @@ def test_run_investigation_contract(client: TestClient) -> None:
     assert response.json()["evaluationScore"] == 100
 
 
+def test_recent_runs_persist_after_investigation(client: TestClient) -> None:
+    run_response = client.post("/v1/investigations", json={"incidentId": "inc-auth-001"})
+    assert run_response.status_code == 200
+
+    history_response = client.get("/v1/investigations/runs")
+    assert history_response.status_code == 200
+    body = history_response.json()
+    assert len(body["runs"]) == 1
+    assert body["runs"][0]["incidentId"] == "inc-auth-001"
+    assert body["runs"][0]["providerMode"] == "demo"
+
+
 def test_requires_api_key_when_enabled(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("DEVPROD_ENABLE_AUTH", "true")
     monkeypatch.setenv("DEVPROD_API_KEY", "secret")
@@ -82,6 +105,12 @@ def test_rate_limit_returns_retry_after(monkeypatch: pytest.MonkeyPatch) -> None
     assert first.status_code == 200
     assert second.status_code == 429
     assert second.headers["Retry-After"] == "60"
+
+
+def test_runtime_config_includes_provider_mode(client: TestClient) -> None:
+    response = client.get("/v1/config")
+    assert response.status_code == 200
+    assert response.json()["providerMode"] == "demo"
 
 
 def _validate_schema(schema_name: str, payload: dict[str, object]) -> None:

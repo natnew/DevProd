@@ -1,15 +1,20 @@
 "use client";
 
-import type { IncidentDetail, InvestigationResult } from "@devprod/contracts";
+import type {
+  IncidentDetail,
+  InvestigationResult,
+  InvestigationRunSummary
+} from "@devprod/contracts";
 import { useEffect, useState, useTransition } from "react";
 
 import type { DashboardData } from "@/lib/api";
-import { getIncidentDetail, runInvestigation } from "@/lib/api";
+import { getIncidentDetail, getRecentRuns, runInvestigation } from "@/lib/api";
 
 export function DashboardShell({ initialData }: { initialData: DashboardData }) {
   const [selectedId, setSelectedId] = useState<string>(initialData.incidents[0]?.id ?? "");
   const [incidentDetail, setIncidentDetail] = useState<IncidentDetail | null>(null);
   const [investigation, setInvestigation] = useState<InvestigationResult | null>(null);
+  const [recentRuns, setRecentRuns] = useState<InvestigationRunSummary[]>(initialData.recentRuns);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [investigationError, setInvestigationError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -54,6 +59,10 @@ export function DashboardShell({ initialData }: { initialData: DashboardData }) 
       runInvestigation({ incidentId: selectedId })
         .then((payload) => {
           setInvestigation(payload);
+          return getRecentRuns();
+        })
+        .then((runs) => {
+          setRecentRuns(runs);
         })
         .catch(() => {
           setInvestigationError("Investigation could not be completed.");
@@ -72,8 +81,12 @@ export function DashboardShell({ initialData }: { initialData: DashboardData }) 
           </p>
           <div className="hero-meta">
             <span className="chip">Seeded scenario set</span>
-            <span className="chip">Demo-mode agents</span>
-            <span className="chip">Traceable evaluation</span>
+            <span className="chip">
+              {initialData.readiness.status === "ready" ? "Readiness green" : "Readiness degraded"}
+            </span>
+            <span className="chip">
+              {initialData.readiness.checks.find((check) => check.name === "mode")?.detail}
+            </span>
           </div>
         </section>
 
@@ -126,7 +139,7 @@ export function DashboardShell({ initialData }: { initialData: DashboardData }) 
                   <div>
                     <h3>{incidentDetail.title}</h3>
                     <p className="muted">
-                      {incidentDetail.service} · {incidentDetail.startedAt}
+                      {incidentDetail.service} {" · "} {incidentDetail.startedAt}
                     </p>
                   </div>
                   <div>
@@ -226,6 +239,26 @@ export function DashboardShell({ initialData }: { initialData: DashboardData }) 
                   </div>
                 ) : (
                   <p className="muted">Workflow trace and regression score appear after execution.</p>
+                )}
+              </section>
+
+              <section className="panel">
+                <h2>Recent Runs</h2>
+                {recentRuns.length > 0 ? (
+                  <div className="stack">
+                    {recentRuns.map((run) => (
+                      <article key={run.id}>
+                        <strong>{run.incidentTitle}</strong>
+                        <p>
+                          {run.providerMode} mode {" · "} score {run.evaluationScore} {" · "}{" "}
+                          {run.createdAt}
+                        </p>
+                        <p>{run.rootCause}</p>
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="muted">Investigation runs will appear here once the workflow executes.</p>
                 )}
               </section>
             </section>

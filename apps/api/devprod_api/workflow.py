@@ -1,90 +1,58 @@
+from typing import Literal
+
+from devprod_api.config import Settings
 from devprod_api.evaluation import score_investigation
-from devprod_api.knowledge import KnowledgeRepository
 from devprod_api.models import (
-    CorrelatedChange,
-    EvidenceItem,
-    Hypothesis,
-    IncidentSummary,
     InvestigationResult,
-    PostmortemSummary,
-    RemediationStep,
-    WorkflowTraceStep,
+    InvestigationRunSummary,
+    ReadinessCheck,
+    ReadinessResponse,
 )
+from devprod_api.providers import WorkflowProvider
 from devprod_api.repository import IncidentRepository
+from devprod_api.run_history import InvestigationRunStore
 
 
 class WorkflowService:
     def __init__(
         self,
+        settings: Settings,
         incident_repository: IncidentRepository,
-        knowledge_repository: KnowledgeRepository,
+        provider: WorkflowProvider,
+        run_store: InvestigationRunStore,
     ) -> None:
+        self._settings = settings
         self._incident_repository = incident_repository
-        self._knowledge_repository = knowledge_repository
+        self._provider = provider
+        self._run_store = run_store
 
     def run(self, incident_id: str) -> InvestigationResult:
         payload = self._incident_repository.get_incident_payload(incident_id)
-        incident = IncidentSummary(**IncidentRepository._to_summary(payload))
-        evidence = [EvidenceItem(**item) for item in payload["evidence"]]
-        changes = [CorrelatedChange(**item) for item in payload["changes"]]
-        knowledge = self._knowledge_repository.list_for_incident()
-
-        hypotheses = [
-            Hypothesis(
-                id="hyp-1",
-                statement=payload["expectedOutcome"]["rootCause"],
-                confidence=0.93,
-                rationale=(
-                    "Deployment timing, issuer mismatch logs, and the config change all point to "
-                    "a production issuer misconfiguration."
-                ),
-                supportingEvidenceIds=["ev-1", "ev-2", "ev-3"],
-            )
-        ]
-        remediation = [
-            RemediationStep(
-                id="rem-1",
-                action="Rollback or correct the AUTH_ISSUER configuration in production.",
-                owner="incident commander",
-                priority="immediate",
-            ),
-            RemediationStep(
-                id="rem-2",
-                action="Add token issuer validation against production after config changes.",
-                owner="platform team",
-                priority="follow-up",
-            ),
-        ]
-        postmortem = PostmortemSummary(
-            title=f"{incident.title} postmortem draft",
-            impact="Checkout authentication failed for customers during the incident window.",
-            rootCause=payload["expectedOutcome"]["rootCause"],
-            followUps=[
-                "Add deployment validation for production auth issuer values.",
-                "Require config diff review before checkout releases.",
-            ],
-        )
-        trace = [
-            WorkflowTraceStep(agent="triage", status="completed", summary="Classified incident as critical auth outage."),
-            WorkflowTraceStep(agent="evidence", status="completed", summary="Structured alert, log, and metric evidence."),
-            WorkflowTraceStep(agent="change-correlation", status="completed", summary="Matched auth issue to deploy and config drift."),
-            WorkflowTraceStep(agent="retrieval", status="completed", summary="Retrieved runbook and prior incident knowledge."),
-            WorkflowTraceStep(agent="hypothesis", status="completed", summary="Ranked issuer mismatch as primary root cause."),
-            WorkflowTraceStep(agent="remediation", status="completed", summary="Drafted rollback and validation steps."),
-            WorkflowTraceStep(agent="postmortem", status="completed", summary="Prepared postmortem summary and follow-ups."),
-            WorkflowTraceStep(agent="policy-review", status="completed", summary="Confirmed no unsafe autonomous actions are proposed."),
-        ]
-
-        result = InvestigationResult(
-            incident=incident,
-            evidence=evidence,
-            changes=changes,
-            knowledge=knowledge,
-            hypotheses=hypotheses,
-            remediation=remediation,
-            postmortem=postmortem,
-            trace=trace,
-            evaluationScore=0,
-        )
+        result = self._provider.run(payload)
         result.evaluationScore = score_investigation(result)
+        self._run_store.save(result, provider_mode=self._provider.provider_mode)
         return result
+
+    def list_recent_runs(self, limit: int = 10) -> list[InvestigationRunSummary]:
+        return self._run_store.list_recent(limit=limit)
+
+    def readiness(self) -> ReadinessResponse:
+        provider_status, provider_detail = self._provider.readiness()
+        run_store_status, run_store_detail = self._run_store.readiness()
+        provider_state: Literal["pass", "fail"] = "pass" if provider_status == "pass" else "fail"
+        run_store_state: Literal["pass", "fail"] = (
+            "pass" if run_store_status == "pass" else "fail"
+        )
+        checks = [
+            ReadinessCheck(name="provider", status=provider_state, detail=provider_detail),
+            ReadinessCheck(name="run-history", status=run_store_state, detail=run_store_detail),
+            ReadinessCheck(
+                name="mode",
+                status="pass",
+                detail=f"Application is running in {'demo' if self._settings.demo_mode else 'live'} mode.",
+            ),
+        ]
+        overall: Literal["ready", "degraded"] = (
+            "ready" if all(check.status == "pass" for check in checks) else "degraded"
+        )
+        return ReadinessResponse(status=overall, checks=checks)
