@@ -57,6 +57,32 @@ This submission includes both:
 - [`packages/contracts`](./packages/contracts): shared API contracts and schemas
 - [`.do/app.yaml`](./.do/app.yaml): DigitalOcean App Platform spec
 
+## Architecture
+
+```mermaid
+flowchart LR
+    U["Engineer / Judge"] --> W["Next.js Web App\napps/web"]
+    W -->|Browser calls /api| APIGW["App Platform Ingress\n/api and /"]
+    APIGW --> WEB["Web Service\napps/web"]
+    APIGW --> API["API Service\napps/api"]
+
+    API --> WF["WorkflowService"]
+    WF --> REPO["IncidentRepository\narena/scenarios + arena/intake"]
+    WF --> KNOW["KnowledgeRepository\nknowledge/manifest.json + docs"]
+    WF --> RUNS["InvestigationRunStore\nSQLite run history"]
+    WF --> PROV["WorkflowProvider"]
+
+    PROV --> DEMO["DemoWorkflowProvider\nlocal deterministic workflow"]
+    PROV --> LIVE["GradientWorkflowProvider\nDigitalOcean Gradient AI"]
+
+    DEMO --> AGENTS["Prompt bundle\nagents/devprod-workflow"]
+    DEMO --> EVAL["Evaluation + trace shaping"]
+    LIVE --> GRAD["Gradient AI inference endpoint"]
+
+    REPO --> SCEN["Scenario packs\nincident.json\nexpected-outcome.json\nrubric.md"]
+    KNOW --> DOCS["Runbooks\nArchitecture notes\nIncidents\nPostmortems"]
+```
+
 ## Current Features
 
 - Incident inbox and investigation dashboard

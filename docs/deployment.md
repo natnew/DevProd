@@ -1,35 +1,28 @@
 # Deployment
 
-## Local Run Commands
+This document covers both the local demo path used for the hackathon submission and the intended DigitalOcean deployment path.
 
-Run the API only:
+## Deployment Targets
 
-```bash
-npm run dev:api
-```
+DevProd is structured as two services:
 
-Run the web app only:
+- `web`: Next.js frontend
+- `api`: FastAPI backend
 
-```bash
-npm run dev:web
-```
+The intended cloud topology is:
 
-Run the full local stack with Docker Compose:
+- DigitalOcean App Platform for the `web` and `api` services
+- DigitalOcean Gradient AI for live AI-backed workflow execution
 
-```bash
-npm run dev
-```
+For the current submission, the most reliable path is local demo mode with `DEMO_MODE=true`.
 
-The local endpoints are:
+## Local Development
 
-- Web: `http://localhost:3000`
-- API: `http://localhost:8000`
+### Environment
 
-## Local Environment
+Create a local `.env` from [`.env.example`](../.env.example).
 
-Create `.env` from `.env.example`.
-
-For local development, use:
+Recommended local values:
 
 ```bash
 APP_BASE_URL=http://localhost:3000
@@ -37,108 +30,210 @@ API_BASE_URL=http://localhost:8000
 INTERNAL_API_BASE_URL=http://localhost:8000
 NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 DEMO_MODE=true
+DEVPROD_ENABLE_AUTH=false
+DEVPROD_ALLOWED_ORIGINS=http://localhost:3000
+DEVPROD_RUN_HISTORY_DB_PATH=apps/api/devprod_history.sqlite3
 ```
 
-## DigitalOcean App Platform
-
-The App Platform spec is at:
-
-- `.do/app.yaml`
-
-Before deploying, replace:
-
-- `REPLACE_WITH_GITHUB_OWNER/REPLACE_WITH_GITHUB_REPO`
-- `https://devprod.example.com`
-- `REPLACE_WITH_GRADIENT_MODEL_ACCESS_KEY`
-
-The spec deploys:
-
-- `apps/api` as the `/api` service
-- `apps/web` as the root web service
-
-The web service uses:
-
-- `INTERNAL_API_BASE_URL=http://api:8000` for server-side requests inside App Platform
-- `NEXT_PUBLIC_API_BASE_URL=/api` for browser requests through the shared public domain
-
-## Deploy With doctl
-
-Create the app from the spec:
+### Start the API
 
 ```bash
-doctl apps create --spec .do/app.yaml
+npm run dev:api
 ```
 
-Update an existing app:
+### Start the web app
+
+In a second terminal:
 
 ```bash
-doctl apps update <app-id> --spec .do/app.yaml
+npm run dev:web
 ```
 
-## Notes
-
-- The API currently uses SQLite for local/demo run history. In App Platform, the spec points it to `/tmp/devprod_history.sqlite3`, which is suitable for demo deployments, not durable production history.
-- `DEMO_MODE=true` keeps the current seeded local orchestration path active. For live provider execution, set `DEMO_MODE=false` and populate the Gradient env vars.
-
-## Pre-Deploy Checklist
-
-Run this checklist before the first real deployment:
-
-### Repo Hygiene
-
-- Confirm `.env` is not committed and production secrets are not present in tracked files.
-- Confirm generated files are ignored:
-  - `apps/api/*.sqlite3`
-  - `apps/api/test-history-*.sqlite3`
-  - `apps/api/eval-history.sqlite3`
-  - `arena/intake/`
-- Run `git status` and make sure only intentional source/config changes remain.
-
-### Local Verification
-
-- Run API tests:
-
-```bash
-npm run test:api
-```
-
-- Run web tests:
-
-```bash
-npm test
-```
-
-- Run web typecheck:
-
-```bash
-npm run typecheck
-```
-
-- Optionally run the full stack locally:
+### Start the full local stack with Docker Compose
 
 ```bash
 npm run dev
 ```
 
-### App Platform Spec
+Local endpoints:
 
-- Replace placeholder repo values in `.do/app.yaml`.
-- Replace `https://devprod.example.com` with the real public domain or initial App Platform hostname.
-- Set `GRADIENT_MODEL_ACCESS_KEY` as a real secret if deploying live mode.
-- Decide whether the first deployment should stay in `DEMO_MODE=true` or switch to `DEMO_MODE=false`.
+- Web: `http://localhost:3000`
+- API: `http://localhost:8000`
 
-### Runtime Expectations
+## Containerized Local Stack
 
-- Accept that run history is ephemeral in the current App Platform spec because it uses `/tmp/devprod_history.sqlite3`.
-- Confirm `DEVPROD_ALLOWED_ORIGINS` matches the deployed frontend domain.
-- Confirm the web service uses:
-  - `NEXT_PUBLIC_API_BASE_URL=/api`
-  - `INTERNAL_API_BASE_URL=http://api:8000`
+The local Docker Compose file is [`docker-compose.yml`](../docker-compose.yml).
 
-### First Deployment Sequence
+It provides:
 
-1. Create or update the app from `.do/app.yaml`.
-2. Wait for both `api` and `web` components to become healthy.
-3. Open the deployed web URL.
-4. Verify the inbox loads and a seeded investigation run succeeds.
-5. Confirm `/readiness` returns `ready`.
+- API service on port `8000`
+- web service on port `3000`
+- internal service-to-service communication from `web` to `api`
+
+Important local compose environment choices:
+
+- `INTERNAL_API_BASE_URL=http://api:8000`
+- `NEXT_PUBLIC_API_BASE_URL=http://localhost:8000`
+- `DEVPROD_RUN_HISTORY_DB_PATH=/app/devprod_history.sqlite3`
+
+## DigitalOcean App Platform Spec
+
+The deployment spec is [`../.do/app.yaml`](../.do/app.yaml).
+
+It defines:
+
+- `api` as a Dockerfile-based web service from `apps/api/Dockerfile`
+- `web` as a Dockerfile-based web service from `apps/web/Dockerfile`
+- ingress routing:
+  - `/api` -> `api`
+  - `/` -> `web`
+
+### Current spec assumptions
+
+- first deploy is demo-safe
+- API auth is enabled in the spec
+- browser traffic reaches the API through `/api`
+- server-side web requests use `http://api:8000`
+- run history is ephemeral and stored in `/tmp/devprod_history.sqlite3`
+
+### Values to update after app creation
+
+After App Platform gives you the generated hostname, replace:
+
+- `APP_BASE_URL`
+- `API_BASE_URL`
+- `DEVPROD_ALLOWED_ORIGINS`
+- web `API_BASE_URL`
+
+Example target values:
+
+```bash
+APP_BASE_URL=https://your-app.ondigitalocean.app
+API_BASE_URL=https://your-app.ondigitalocean.app/api
+DEVPROD_ALLOWED_ORIGINS=https://your-app.ondigitalocean.app
+```
+
+## Deploy With `doctl`
+
+### Install and authenticate
+
+Install `doctl` from the official docs:
+
+- <https://docs.digitalocean.com/reference/doctl/how-to/install/>
+
+Authenticate:
+
+```bash
+doctl auth init
+```
+
+Verify:
+
+```bash
+doctl account get
+```
+
+### Create the app
+
+```bash
+doctl apps create --spec .do/app.yaml
+```
+
+### Update an existing app
+
+```bash
+doctl apps update <app-id> --spec .do/app.yaml
+```
+
+### Inspect the deployed app
+
+```bash
+doctl apps list
+doctl apps get <app-id>
+doctl apps list-deployments <app-id>
+```
+
+## Demo Mode vs Live Mode
+
+### Demo mode
+
+Set:
+
+```bash
+DEMO_MODE=true
+```
+
+In this mode:
+
+- the local `DemoWorkflowProvider` is used
+- seeded scenario artifacts drive the workflow
+- no external AI service is required
+
+This is the primary mode for the hackathon submission and local review.
+
+### Live mode
+
+Set:
+
+```bash
+DEMO_MODE=false
+GRADIENT_API_BASE_URL=<your-gradient-endpoint>
+GRADIENT_MODEL_ACCESS_KEY=<your-secret>
+```
+
+In this mode:
+
+- the backend uses `GradientWorkflowProvider`
+- a machine-readable investigation prompt is sent to a Gradient AI endpoint
+- the returned JSON is validated against the backend contract
+
+## Operational Notes
+
+- The current run history store is SQLite.
+- In local mode it is stored under `apps/api/devprod_history.sqlite3` unless overridden.
+- In App Platform it is configured to use `/tmp/devprod_history.sqlite3`.
+- `/tmp` is not durable storage, so investigation history is ephemeral across restarts and redeploys.
+
+That is acceptable for a hackathon demo deployment, but not for a persistent production deployment.
+
+## Verification Checklist
+
+Before submission or deployment:
+
+1. Run API tests:
+
+```bash
+npm run test:api
+```
+
+2. Run web tests:
+
+```bash
+npm test
+```
+
+3. Run the web typecheck:
+
+```bash
+npm run typecheck
+```
+
+4. Start the app locally and verify:
+
+- incident inbox loads
+- seeded incidents are visible
+- an investigation run completes
+- retrieval, hypotheses, remediation, and postmortem panels render
+
+5. If deploying to App Platform, verify after deployment:
+
+- the root web URL loads
+- `/api/readiness` responds
+- the inbox loads through the deployed frontend
+- a seeded investigation run succeeds end-to-end
+
+## Known Limitations
+
+- public cloud deployment was not completed before the hackathon deadline
+- live Gradient mode is included as an integration path, but demo mode is the default reviewed path
+- run history is not yet backed by durable managed storage
