@@ -1,7 +1,8 @@
 from functools import lru_cache
+from typing import Annotated
 
 from pydantic import Field, field_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -11,7 +12,7 @@ class Settings(BaseSettings):
     devprod_api_key: str | None = Field(default=None, alias="DEVPROD_API_KEY")
     devprod_enable_auth: bool = Field(default=False, alias="DEVPROD_ENABLE_AUTH")
     devprod_rate_limit_per_minute: int = Field(default=60, alias="DEVPROD_RATE_LIMIT_PER_MINUTE")
-    devprod_allowed_origins: list[str] = Field(
+    devprod_allowed_origins: Annotated[list[str], NoDecode] = Field(
         default=["http://localhost:3000"], alias="DEVPROD_ALLOWED_ORIGINS"
     )
     gradient_api_base_url: str | None = Field(default=None, alias="GRADIENT_API_BASE_URL")

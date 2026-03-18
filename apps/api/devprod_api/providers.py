@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from typing import Any, Protocol, cast
 
@@ -111,24 +112,34 @@ class GradientWorkflowProvider:
     def run(self, incident_payload: dict[str, Any]) -> InvestigationResult:
         self._ensure_configured()
         assert self.settings.gradient_api_base_url is not None
-        assert self.settings.gradient_agent_id is not None
         assert self.settings.gradient_model_access_key is not None
-        request_payload = {"incident": incident_payload}
+        request_payload = {
+            "messages": [
+                {
+                    "role": "user",
+                    "content": self._build_prompt(incident_payload),
+                }
+            ],
+            "temperature": 0.2,
+            "stream": False,
+            "max_completion_tokens": 1800,
+        }
         headers = {
             "Authorization": f"Bearer {self.settings.gradient_model_access_key}",
             "Content-Type": "application/json",
         }
-        endpoint = (
-            f"{self.settings.gradient_api_base_url.rstrip('/')}/agents/"
-            f"{self.settings.gradient_agent_id}/investigations"
-        )
+        endpoint = f"{self.settings.gradient_api_base_url.rstrip('/')}/api/v1/chat/completions"
         with httpx.Client(timeout=self.timeout_seconds) as client:
             response = client.post(endpoint, json=request_payload, headers=headers)
+        if response.status_code in {401, 403}:
+            raise ServiceUnavailableError(
+                "Live provider rejected the request. Check the hosted agent model and access key."
+            )
         if response.status_code >= 500:
             raise ServiceUnavailableError("Live provider is temporarily unavailable.")
         if response.status_code >= 400:
             raise ServiceUnavailableError("Live provider rejected the investigation request.")
-        return InvestigationResult(**cast(dict[str, Any], response.json()))
+        return self._parse_result(cast(dict[str, Any], response.json()))
 
     def readiness(self) -> tuple[str, str]:
         missing = self._missing_fields()
@@ -147,11 +158,115 @@ class GradientWorkflowProvider:
         missing: list[str] = []
         if not self.settings.gradient_api_base_url:
             missing.append("GRADIENT_API_BASE_URL")
-        if not self.settings.gradient_agent_id:
-            missing.append("GRADIENT_AGENT_ID")
         if not self.settings.gradient_model_access_key:
             missing.append("GRADIENT_MODEL_ACCESS_KEY")
         return missing
+
+    @staticmethod
+    def _build_prompt(incident_payload: dict[str, Any]) -> str:
+        contract = {
+            "incident": {
+                "id": "string",
+                "title": "string",
+                "service": "string",
+                "severity": "critical|high|medium|low",
+                "status": "open|investigating|resolved",
+                "summary": "string",
+                "startedAt": "string",
+            },
+            "evidence": [
+                {
+                    "id": "string",
+                    "kind": "log|alert|metric|stack-trace",
+                    "summary": "string",
+                    "detail": "string",
+                    "source": "string",
+                }
+            ],
+            "changes": [
+                {
+                    "id": "string",
+                    "title": "string",
+                    "type": "deploy|config|dependency|commit",
+                    "service": "string",
+                    "timestamp": "string",
+                    "summary": "string",
+                }
+            ],
+            "knowledge": [
+                {
+                    "id": "string",
+                    "title": "string",
+                    "category": "runbook|incident|postmortem|architecture",
+                    "excerpt": "string",
+                    "path": "string",
+                }
+            ],
+            "hypotheses": [
+                {
+                    "id": "string",
+                    "statement": "string",
+                    "confidence": 0.0,
+                    "rationale": "string",
+                    "supportingEvidenceIds": ["string"],
+                }
+            ],
+            "remediation": [
+                {
+                    "id": "string",
+                    "action": "string",
+                    "owner": "string",
+                    "priority": "immediate|next|follow-up",
+                }
+            ],
+            "postmortem": {
+                "title": "string",
+                "impact": "string",
+                "rootCause": "string",
+                "followUps": ["string"],
+            },
+            "trace": [
+                {
+                    "agent": "string",
+                    "status": "completed|skipped",
+                    "summary": "string",
+                }
+            ],
+            "evaluationScore": 0,
+        }
+        return (
+            "You are returning a machine-consumable investigation result for DevProd. "
+            "Respond with JSON only. Do not use markdown fences. "
+            "Match this exact schema shape and field names:\n"
+            f"{json.dumps(contract)}\n"
+            "Use the incident payload below as the source of truth. "
+            "Prefer conservative inferences and keep the result internally consistent.\n"
+            f"{json.dumps(incident_payload)}"
+        )
+
+    @staticmethod
+    def _parse_result(response_payload: dict[str, Any]) -> InvestigationResult:
+        try:
+            content = cast(
+                str,
+                response_payload["choices"][0]["message"]["content"],
+            )
+        except (KeyError, IndexError, TypeError) as exc:
+            raise ServiceUnavailableError("Live provider returned an invalid response payload.") from exc
+
+        normalized = content.strip()
+        if normalized.startswith("```"):
+            normalized = normalized.strip("`")
+            if normalized.startswith("json"):
+                normalized = normalized[4:].lstrip()
+        try:
+            payload = json.loads(normalized)
+        except json.JSONDecodeError as exc:
+            raise ServiceUnavailableError("Live provider returned non-JSON investigation content.") from exc
+        try:
+            return InvestigationResult(**cast(dict[str, Any], payload))
+        except Exception as exc:
+            raise ServiceUnavailableError("Live provider returned an incompatible investigation result.") from exc
 
 
 def build_workflow_provider(
